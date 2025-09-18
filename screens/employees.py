@@ -163,8 +163,8 @@ def EmployeeManagementScreen(page, navigator, user):
     add_btn = ft.ElevatedButton("➕ הוספת עובד", bgcolor="#52b69a", color="white", on_click=add_employee)
     report_btn = ft.ElevatedButton(
         "📊 דו\"ח עובד חודשי", bgcolor="#f28c7d", color="white",
-        on_click=lambda e: MonthlyWorkerReportScreen(page, navigator.go_home(user)
-)
+        on_click=lambda e:  MonthlyWorkerReportScreen(page, user, navigator.go_employee_management)
+
     )
 
     page.controls.clear()

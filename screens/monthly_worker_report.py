@@ -4,7 +4,7 @@ from datetime import datetime
 
 HOUR_RATE = 35  # ש"ח לשעה
 
-def MonthlyWorkerReportScreen(page, go_home):
+def MonthlyWorkerReportScreen(page, user, go_employee_management):
     page.title = "דו\"ח עובד חודשי"
 
     # --- פונקציות עזר ---
@@ -54,12 +54,14 @@ def MonthlyWorkerReportScreen(page, go_home):
     # --- DataTable להדוח ---
     report_table = ft.DataTable(
         columns=[
-            ft.DataColumn(ft.Text("תאריך", weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("כניסה", weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("יציאה", weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("שעות עבודה", weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("פעולות", weight=ft.FontWeight.BOLD))
+            ft.DataColumn(ft.Text("תאריך", size=18, weight=ft.FontWeight.BOLD )),
+            ft.DataColumn(ft.Text("כניסה", size=18, weight=ft.FontWeight.BOLD )),
+            ft.DataColumn(ft.Text("יציאה", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("שעות עבודה", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("פעולות", size=18, weight=ft.FontWeight.BOLD))
         ],
+
+
         rows=[],
         heading_row_color="#52b69a",
         column_spacing=20,
@@ -97,32 +99,36 @@ def MonthlyWorkerReportScreen(page, go_home):
             actions_row = ft.Row(
                 controls=[
                     ft.IconButton(icon=ft.Icons.EDIT, icon_color="#52b69a", icon_size=28, tooltip="ערוך"),
-                    ft.IconButton(icon=ft.Icons.DELETE, icon_color="#52b69a", icon_size=28, tooltip="מחק")
+                    ft.IconButton(icon=ft.Icons.DELETE, icon_color="#f28c7d", icon_size=28, tooltip="מחק")
                 ],
-                spacing=8
+                spacing=8,
+                alignment=ft.MainAxisAlignment.END
             )
 
             report_table.rows.append(
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(r["date_"])),
-                        ft.DataCell(ft.Text(r["enter_time"] or "-")),
-                        ft.DataCell(ft.Text(r["exit_time"] or "-")),
-                        ft.DataCell(ft.Text(format_hours(hours))),
+                        ft.DataCell(ft.Text(r["date_"], text_align=ft.TextAlign.RIGHT)),
+                        ft.DataCell(ft.Text(r["enter_time"] or "-", text_align=ft.TextAlign.RIGHT)),
+                        ft.DataCell(ft.Text(r["exit_time"] or "-", text_align=ft.TextAlign.RIGHT)),
+                        ft.DataCell(ft.Text(format_hours(hours), text_align=ft.TextAlign.RIGHT)),
                         ft.DataCell(actions_row)
                     ],
                     color="#ffffff" if i % 2 == 0 else "#fceef3"
                 )
             )
 
-        # שורה מסכמת
+        # --- שורה מסכמת חדשה ---
+        total_hours_text = f"{format_hours(total_hours)}"
+        total_payment_text = f"{total_hours*HOUR_RATE:.2f} ש\"ח"
+
         report_table.rows.append(
             ft.DataRow(
                 cells=[
-                    ft.DataCell(ft.Text("סה\"כ", weight=ft.FontWeight.BOLD)),
+                    ft.DataCell(ft.Text(f" סה\"כ שעות:{total_hours_text} ", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.RIGHT)),
+                    ft.DataCell(ft.Text(" ")),
                     ft.DataCell(ft.Text("-")),
-                    ft.DataCell(ft.Text("-")),
-                    ft.DataCell(ft.Text(f"{format_hours(total_hours)} שעות / {total_hours*HOUR_RATE:.2f} ש\"ח", weight=ft.FontWeight.BOLD)),
+                    ft.DataCell(ft.Text(f"סה\"כ לתשלום: {total_payment_text}", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.RIGHT)),
                     ft.DataCell(ft.Text(""))
                 ],
                 color="#ddd"
@@ -159,6 +165,15 @@ def MonthlyWorkerReportScreen(page, go_home):
     next_month_btn = ft.IconButton(icon=ft.Icons.ARROW_FORWARD, on_click=lambda e: change_month(1))
     month_row = ft.Row([prev_month_btn, month_dropdown, next_month_btn], alignment=ft.MainAxisAlignment.CENTER, spacing=5)
 
+    # --- כפתור חזור לניהול עובדים ---
+    back_btn = ft.ElevatedButton(
+        "⬅ חזור לניהול עובדים",
+        on_click=lambda e: go_employee_management(user),
+        bgcolor="#f28c7d",
+        color="white",
+        width=200
+    )
+
     page.controls.clear()
     page.add(
         ft.Column(
@@ -167,18 +182,21 @@ def MonthlyWorkerReportScreen(page, go_home):
                 ft.Row([user_dropdown], alignment=ft.MainAxisAlignment.CENTER),
                 month_row,
                 ft.Container(
-                    content=report_table,
+                    content=ft.ListView(
+                        controls=[report_table],
+                        expand=True
+                    ),
                     padding=15,
                     bgcolor="#ffe5ec",
                     border_radius=12,
                     expand=True
                 ),
-                ft.Container(height=20),
-
+                ft.Row([back_btn], alignment=ft.MainAxisAlignment.CENTER)
             ],
             expand=True,
             spacing=15,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO
         )
     )
 
