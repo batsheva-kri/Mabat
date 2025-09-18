@@ -1,5 +1,6 @@
 import flet as ft
 from logic.auth import authenticate_by_password
+from .home import HomeScreen
 
 def LoginScreen(page, navigator):
     page.title = "Mabat Login"
@@ -21,8 +22,9 @@ def LoginScreen(page, navigator):
         user = authenticate_by_password(password_field.value)
         if user:
             navigator.go_home(user)
+
         else:
-            message.value = "סיסמה שגויה"
+            message.value = " סיסמה שגויה"
             message.update()
 
     login_column = ft.Column(

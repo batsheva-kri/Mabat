@@ -1,10 +1,16 @@
-from .db import run_query, run_action
+
 from datetime import datetime
 
+from logic.db import run_action
+from logic.utils import run_query
+
+
 def authenticate_by_password(password: str):
-    users = run_query("SELECT * FROM users WHERE password_=?", (password,))
+    print(password)
+    users = run_query("SELECT * FROM users WHERE password_=?", (password,), fetchone=True)
+    print(users)
     if users:
-        user = users[0]
+        user = users
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         run_action(
             "INSERT INTO worker_reports (user_id, date_, enter_time) VALUES (?, ?, ?)",
