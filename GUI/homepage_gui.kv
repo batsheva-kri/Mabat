@@ -1,0 +1,65 @@
+ #:import dp kivy.metrics.dp
+
+<HomePage>:
+    MDFloatLayout:
+
+        MDTopAppBar:
+            title: app.make_rtl1("מבט - ניהול חנות עדשות")
+            pos_hint: {"top": 1}
+            elevation: 4
+            font_name: "HebrewFont"
+        MDLabel:
+            id: welcome_label
+            text:app.make_rtl1( "חנות ניסוי")
+            halign: "center"
+            pos_hint: {"center_y": 0.85}
+            font_name: "HebrewFont"
+
+        ScrollView:
+            size_hint: 1, 0.6
+            pos_hint: {"center_y": 0.5}
+
+            MDBoxLayout:
+                id: menu_box
+                orientation: "vertical"
+                padding: dp(16)
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(8)
+            spacing: dp(8)
+            size_hint: 1, None
+            height: self.minimum_height
+            pos_hint: {"y": 0.12}
+
+            MDLabel:
+                text: app.make_rtl1("משתמשים מחוברים:")
+                halign: "right"
+                font_name: "HebrewFont"
+
+            MDGridLayout:
+                id: active_users_chips
+                cols: 3
+                adaptive_height: True
+                spacing: dp(6)
+                padding: dp(6)
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(64)
+            padding: dp(12)
+            spacing: dp(12)
+            pos_hint: {"y": 0}
+
+            MDFillRoundFlatButton:
+                text: app.make_rtl1("כניסה מרובה")
+                font_name: "HebrewFont"
+                on_release: app.open_multi_login_dialog()
+
+            MDRaisedButton:
+                text:app.make_rtl1( "התנתקות")
+                font_name: "HebrewFont"
+                on_release: app.logout_to_login()

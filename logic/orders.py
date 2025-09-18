@@ -1,0 +1,175 @@
+from logic.utils import run_query
+
+def create_invitation(header: dict):
+    query = """
+    INSERT INTO customer_invitations
+        (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, curvature, prescription)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        header.get("customer_id"),
+        header.get("created_by_user_id"),
+        header.get("date_"),
+        header.get("notes"),
+        header.get("total_price"),
+        header.get("status"),
+        header.get("call"),
+        header.get("want_shipping", 0),   # תואם ל-delivery_requested
+        header.get("shipped", 0),         # תואם ל-delivery_sent
+        header.get("curvature"),
+        header.get("prescription"),
+    )
+    invitation_id = run_query(query, params, commit=True)
+    print(invitation_id)
+    return invitation_id
+def add_invitation_items(invitation_id: int, items: list[dict]):
+    """
+    מוסיף פריטים להזמנה
+    כל item = {product_id, qty, size, unit_price, line_total, supplied}
+    """
+    query = """
+    INSERT INTO customer_invitation_items
+        (invitation_id, product_id, quantity, size, price, supplied)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
+    for it in items:
+        params = (
+            invitation_id,
+            it["product_id"],
+            it["qty"],
+            it["size"],
+            it["unit_price"],
+            it["supplied"],
+        )
+        run_query(query, params, commit=True)  # בהנחה ש־run_query נמצאת בקובץ db.py
+def update_invitation(invitation_id: int, header: dict):
+    """
+    מעדכן את פרטי ההזמנה בטבלת customer_invitations אם ההזמנה קיימת
+    """
+    existing = run_query(
+        "SELECT id FROM customer_invitations WHERE id = ?",
+        (invitation_id,),
+        fetchone=True
+    )
+    if not existing:
+        return False
+
+    query = """
+        UPDATE customer_invitations
+        SET customer_id = ?,
+            created_by_user_id = ?,
+            date_ = ?,
+            notes = ?,
+            total_price = ?,
+            status = ?,
+            call = ?,
+            delivery_requested = ?,
+            delivery_sent = ?,
+            curvature = ?,
+            prescription = ?
+        WHERE id = ?
+    """
+    params = (
+        header.get("customer_id"),
+        header.get("created_by_user_id"),
+        header.get("date_"),
+        header.get("notes"),
+        header.get("total_price"),
+        header.get("status"),
+        header.get("call"),
+        header.get("want_shipping", 0),
+        header.get("shipped", 0),
+        header.get("curvature"),
+        header.get("prescription"),
+        invitation_id
+    )
+    run_query(query, params, commit=True)
+    return True
+def clear_invitation_items(invitation_id: int):
+    """
+    מוחק את כל הפריטים הקשורים להזמנה מהטבלה customer_invitation_items אם ההזמנה קיימת
+    :param invitation_id: מזהה ההזמנה
+    :return: True אם נמחקו פריטים, False אם ההזמנה לא קיימת
+    """
+    existing = run_query(
+        "SELECT id FROM customer_invitations WHERE id = ?",
+        (invitation_id,),
+        fetchone=True
+    )
+    if not existing:
+        return False
+
+    query = "DELETE FROM customer_invitation_items WHERE invitation_id = ?"
+    run_query(query, (invitation_id,), commit=True)
+    return True
+def get_latest_orders(limit=1500):
+    """
+    מחזירה רשימה של ההזמנות האחרונות של כל הלקוחות.
+    כל הזמנה כוללת:
+    - פרטי ההזמנה
+    - פרטי הלקוח
+    - פרטי הפריטים (items) עם line_total
+    - שדות נוספים: created_by_user_id, call
+    """
+    # שליפה של ההזמנות האחרונות עם פרטי לקוח
+    invitations_query = """
+        SELECT ci.*, c.name AS customer_name, c.phone AS customer_phone
+        FROM customer_invitations ci
+        JOIN customers c ON c.id = ci.customer_id
+        ORDER BY ci.date_ DESC
+        LIMIT ?
+    """
+    invitations = run_query(invitations_query, (limit,), fetchall=True)
+
+    latest_orders = []
+
+    for inv in invitations:
+        # שליפה של כל הפריטים להזמנה זו
+        items_query = """
+            SELECT cii.id, cii.invitation_id, p.name AS product_name, p.id as product_id, cii.quantity AS qty,
+                   cii.size, cii.price as unit_price, cii.supplied
+            FROM customer_invitation_items cii
+            JOIN products p ON p.id = cii.product_id
+            WHERE cii.invitation_id = ?
+        """
+        items = run_query(items_query, (inv["id"],), fetchall=True)
+
+        # חישוב line_total לכל פריט
+        for item in items:
+            item["line_total"] = item["qty"] * item["unit_price"] if item["unit_price"] is not None else 0
+            item["supplied"] =item["supplied"]
+
+        # הכנה של אובייקט הזמנה
+        order = {
+            "id": inv["id"],
+            "customer_id": inv["customer_id"],
+            "date": inv["date_"],
+            "status": inv["status"],
+            "notes": inv["notes"],
+            "total_price": inv["total_price"],
+            "answered": inv.get("call", 0),
+            "created_by_user_id": inv.get("created_by_user_id"),
+            "want_shipping": inv.get("delivery_requested"),
+            "shipped":inv.get("delivery_sent"),
+            "curvature":inv.get("curvature"),
+            "prescription":inv.get("prescription"),
+            "items": items
+        }
+
+        # פרטי לקוח
+        customer = {
+            "id": inv["customer_id"],
+            "name": inv["customer_name"],
+            "phone": inv["customer_phone"]
+        }
+
+        latest_orders.append({
+            "customer": customer,
+            "order": order
+        })
+
+    return latest_orders
+def auto_save_field(invitation_id, field, value):
+    query = f"UPDATE customer_invitations SET {field} = ? WHERE id = ?"
+    run_query(query, (value, invitation_id), commit=True)
+    print(f"עודכן {field} ל-{value} להזמנה {invitation_id}")

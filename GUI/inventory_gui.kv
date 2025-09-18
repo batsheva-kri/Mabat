@@ -1,0 +1,79 @@
+<InventoryLayout>:
+    orientation: 'vertical'
+
+<MainOrdersPage>:
+    MDFloatLayout:
+        MDTopAppBar:
+            title: "מבט - הזמנות"
+            pos_hint: {"top": 1}
+
+        MDLabel:
+            text: "ברוך הבא למערכת ההזמנות"
+            halign: "center"
+            pos_hint: {"center_y": 0.85}
+
+        MDCard:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            size_hint: 0.9, None
+            height: self.minimum_height
+            pos_hint: {"center_x": 0.5, "y": 0.05}
+            md_bg_color: app.theme_cls.bg_dark
+
+            MDRaisedButton:
+                text: "למלאי"
+                on_release: app.show_inventory_page()
+                pos_hint: {"center_x": 0.5}
+
+<NewCustomerPage>:
+    MDCard:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(12)
+        size_hint: 0.9, None
+        height: self.minimum_height
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        md_bg_color: app.theme_cls.bg_dark
+
+        MDLabel:
+            text: "לקוח חדש"
+            halign: "center"
+
+        MDTextField:
+            hint_text: "שם"
+
+        MDTextField:
+            hint_text: "טלפון"
+
+        MDTextField:
+            hint_text: "אימייל"
+
+        MDTextField:
+            hint_text: "הערות"
+
+        MDRectangleFlatButton:
+            text: "💾 שמור והמשך להזמנה"
+            on_release: root.save_and_open_invitation()
+
+<InventoryPage>:
+    MDCard:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(12)
+        size_hint: 0.9, None
+        height: self.minimum_height
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        md_bg_color: app.theme_cls.bg_dark
+
+        MDLabel:
+            text: "ניהול מלאי"
+            halign: "center"
+
+        MDRaisedButton:
+            text: "מלאי שהגיע"
+            on_release: root.show_new_stock_suppliers()
+
+        MDRaisedButton:
+            text: "כמויות קיימות במלאי"
+            on_release: root.show_current_stock_page()

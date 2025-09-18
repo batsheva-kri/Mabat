@@ -1,0 +1,237 @@
+#:import dp kivy.metrics.dp
+
+ScreenManager:
+    HomeScreen:
+    SuppliersListScreen:
+    DeleteSupplierScreen:
+    CatalogScreen:
+    GenericListScreen:
+    MonthlyReportSelectorScreen:
+    MonthlyReportScreen:
+
+<HomeScreen>:
+    MDFloatLayout:
+        MDTopAppBar:
+            title: app.make_rtl1("📦 מערכת ניהול ספקים והזמנות")
+            pos_hint: {"top": 1}
+            elevation: 4
+            font_name: "HebrewFont"
+
+        ScrollView:
+            size_hint: 1, 0.85
+            pos_hint: {"center_y": 0.45}
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: dp(8)
+                padding: dp(16)
+                size_hint_y: None
+                height: self.minimum_height
+
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(16)
+                    size_hint: 1, None
+                    height: self.minimum_height
+                    md_bg_color: app.theme_cls.bg_dark
+
+                    MDLabel:
+                        text: app.make_rtl1("תפריט ספקים")
+                        halign: "center"
+                        font_style: "H6"
+                        font_name: "HebrewFont"
+                        size_hint_y: None
+                        height: self.texture_size[1] + dp(10)
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(8)
+                        adaptive_height: True
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("➕ הוספת ספק")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "suppliers_list"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("🔍 חיפוש ועריכת ספק")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "suppliers_list"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("🗑 מחיקת ספק")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "delete_supplier"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("📂 הזמנות פתוחות לפי ספק")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "generic_list"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("📦 הזמנות סגורות שלא סופקו")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "generic_list"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("📊 דוח חודשי")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "monthly_report_selector"
+
+                        MDRaisedButton:
+                            text: app.make_rtl1("💲 מחירון ספקים")
+                            font_name: "HebrewFont"
+                            on_release: root.manager.current = "catalog"
+
+
+<SuppliersListScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.make_rtl1("🔍 רשימת ספקים")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        BoxLayout:
+            id: content_box
+            orientation: "vertical"
+            padding: dp(8)
+            spacing: dp(8)
+
+        MDBoxLayout:
+            adaptive_height: True
+            spacing: dp(8)
+            padding: dp(8)
+            MDRaisedButton:
+                text: app.make_rtl1("✏ ערוך ספק נבחר")
+                font_name: "HebrewFont"
+                on_release: root.edit_selected()
+
+
+<DeleteSupplierScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.make_rtl1("🗑 מחיקת ספק")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        BoxLayout:
+            id: content_box
+            orientation: "vertical"
+            padding: dp(8)
+            spacing: dp(8)
+
+        MDBoxLayout:
+            adaptive_height: True
+            spacing: dp(8)
+            padding: dp(8)
+            MDRaisedButton:
+                text: app.make_rtl1("🗑 מחק ספק נבחר")
+                font_name: "HebrewFont"
+                on_release: root.delete_selected()
+
+
+<CatalogScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.make_rtl1("💲 מחירון ספקים")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: dp(8)
+            padding: dp(8)
+            adaptive_height: True
+
+            MDRaisedButton:
+                text: app.make_rtl1("➕ הוסף מוצר")
+                font_name: "HebrewFont"
+                on_release: root.add_entry()
+
+            MDRaisedButton:
+                text: app.make_rtl1("🔄 טען מחירון")
+                font_name: "HebrewFont"
+                on_release: root.refresh()
+
+            MDRaisedButton:
+                text: app.make_rtl1("כל הספקים")
+                font_name: "HebrewFont"
+                on_release: root.show_all()
+
+            MDRaisedButton:
+                text: app.make_rtl1("בחר ספק")
+                font_name: "HebrewFont"
+                on_release: root.pick_supplier()
+
+        BoxLayout:
+            id: table_box
+            padding: dp(8)
+            spacing: dp(8)
+
+
+<GenericListScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            id: topbar
+            title: app.make_rtl1("רשימה")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        BoxLayout:
+            id: table_box
+            padding: dp(8)
+            spacing: dp(8)
+
+
+<MonthlyReportSelectorScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: dp(12)
+        padding: dp(16)
+
+        MDTopAppBar:
+            title: app.make_rtl1("בחירת דו\"ח חודשי")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        MDTextField:
+            id: supplier_field
+            hint_text: app.make_rtl("בחר ספק בלחיצה")
+            readonly: True
+            on_focus: if self.focus: root.pick_supplier()
+            font_name: "HebrewFont"
+
+        MDTextField:
+            id: year_field
+            hint_text: app.make_rtl("שנה (למשל 2025)")
+            text: "2025"
+            font_name: "HebrewFont"
+
+        MDTextField:
+            id: month_field
+            hint_text: app.make_rtl("חודש (1-12)")
+            text: "1"
+            font_name: "HebrewFont"
+
+        MDRaisedButton:
+            text: app.make_rtl1("📊 הצג דו\"ח")
+            font_name: "HebrewFont"
+            on_release: root.run_report()
+
+
+<MonthlyReportScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            id: topbar
+            title: app.make_rtl1("דו\"ח חודשי")
+            left_action_items: [["arrow-right", lambda x: setattr(app.root, "current", "home")]]
+            font_name: "HebrewFont"
+
+        BoxLayout:
+            id: table_box
+            padding: dp(8)
+            spacing: dp(8)

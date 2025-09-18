@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="be2f94cf-380f-4179-938a-47fbc5580085" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/מבט.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DB/users.db" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/customers_gui.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/customers_gui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/homepage_gui.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/inventory_gui.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/inventory_gui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/login_gui.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/new_invitation_screen.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/new_invitation_screen.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/ss.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/styles.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/suppliers_gui.kv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/suppliers_gui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/temo2.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/GUI/temp.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Mabat_db.db" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Mabat_db.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/shop_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dal/suppliers_dal.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fill.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/homepage.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/auth.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/customers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/db.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/inventory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/orders.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/products.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/reminder.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/suppliers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/users.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logic/utils.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/navigation.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/reminder.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/customers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/home.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/inventory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/login.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/mainInventory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/mune.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/new_customer_page.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/new_invitation_page.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/supplier_catalog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/supplier_orders.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/supplier_reports.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/suppliers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/screens/suppliers_forms.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/temprint.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/data/store.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/test_suppliers.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="30aKqtZyXt2FBrVxDmW1VkUxa6E" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.Example.executor": "Run",
+    "Python.app.executor": "Run",
+    "Python.customers.executor": "Run",
+    "Python.customers_gui.executor": "Run",
+    "Python.inventory.executor": "Run",
+    "Python.inventory_gui.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.new_invitation_gui.executor": "Run",
+    "Python.ss.executor": "Run",
+    "Python.supplier_catalog.executor": "Run",
+    "Python.suppliers.executor": "Run",
+    "Python.suppliers_gui.executor": "Run",
+    "Python.temp.executor": "Run",
+    "Python.temprint.executor": "Run",
+    "Python.test_suppliers.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "C:/מירי/מבט/DB",
+    "run.code.analysis.last.selected.profile": "pProject Default"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\מירי\מבט\assets" />
+      <recent name="C:\מירי\מבט" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-fb887030ada0-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.199" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="be2f94cf-380f-4179-938a-47fbc5580085" name="Changes" comment="" />
+      <created>1753860437530</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753860437530</updated>
+    </task>
+    <servers />
+  </component>
+</project>

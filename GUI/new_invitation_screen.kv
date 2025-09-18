@@ -1,0 +1,26 @@
+<NewInvitationScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(10)
+        spacing: dp(10)
+
+        MDLabel:
+            text: "הזמנה חדשה"
+            halign: "center"
+            font_style: "H5"
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(10)
+            MDRaisedButton:
+                text: "➕ הוסף פריט"
+                on_release: root.open_add_product_dialog()
+            MDLabel:
+                id: total_label
+                text: "סה\"כ: 0"
+                halign: "right"
+
+        BoxLayout:
+            id: table_box
+            orientation: "vertical"

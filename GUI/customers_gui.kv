@@ -1,0 +1,40 @@
+#:import dp kivy.metrics.dp
+
+<CustomersScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(16)
+        spacing: dp(12)
+
+        MDLabel:
+            text: app.make_rtl1("לקוחות")
+            halign: "center"
+            font_style: "H5"
+            font_name: "HebrewFont"
+
+        MDTextField:
+            id: name_input
+            hint_text: app.make_rtl1("חפש לפי שם")
+            font_name: "HebrewFont"
+            on_text_validate: root.search_customers()
+
+        MDTextField:
+            id: phone_input
+            hint_text: app.make_rtl1("חפש לפי טלפון")
+            font_name: "HebrewFont"
+            on_text_validate: root.search_customers()
+
+        MDRaisedButton:
+            text: app.make_rtl1("חפש")
+            font_name: "HebrewFont"
+            size_hint_y: None
+            height: dp(48)
+            on_release: root.search_customers()
+
+        MDDataTable:
+            id: customers_table
+            size_hint_y: 0.6
+            column_data: [
+                (app.make_rtl1("שם"), dp(40)),
+                (app.make_rtl1("טלפון"), dp(40)),]
+            row_data: []

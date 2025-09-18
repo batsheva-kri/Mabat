@@ -1,0 +1,48 @@
+<LoginScreen>:
+    MDFloatLayout:
+
+        FitImage:
+            source: app.image_path
+            allow_stretch: True
+            keep_ratio: True
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            size_hint: 1, 1
+
+        MDCard:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            size_hint: 0.9, None
+            height: self.minimum_height
+            pos_hint: {"center_x": 0.5, "y": 0.05}
+            md_bg_color: app.theme_cls.bg_dark
+
+            MDLabel:
+                text: app.make_rtl1("מבט - כניסה")
+                halign: "center"
+                font_style: "H5"
+                font_name: "HebrewFont"
+
+            MDTextField:
+                id: password
+                hint_text: ""
+                helper_text: app.make_rtl("הכניסי סיסמה")
+                helper_text_mode: "persistent"
+                password: True
+                mode: "rectangle"
+                halign: "center"
+                font_name: "HebrewFont"
+
+
+            MDRaisedButton:
+                text: app.make_rtl1("התחברות")
+                pos_hint: {"center_x": 0.5}
+                on_release: app.login_by_password(password.text)
+                font_name: "HebrewFont"
+
+            MDLabel:
+                id: error_label
+                text: ""
+                theme_text_color: "Error"
+                halign: "center"
+                font_name: "HebrewFont"

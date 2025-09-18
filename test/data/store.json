@@ -1,0 +1,20 @@
+{
+  "Suppliers": [],
+  "Suppliers_catalog": [],
+  "Supplier_invitations": [
+    {
+      "Id": 1,
+      "Supplier_id": 1,
+      "Date": "2025-08-10 15:44:46",
+      "Product_in_invitation_id": 5001,
+      "supplied": true
+    }
+  ],
+  "Products": [
+    {
+      "Id": 5001,
+      "Name": "עדשה חודשית",
+      "Suppliers_priority_id": 1
+    }
+  ]
+}
