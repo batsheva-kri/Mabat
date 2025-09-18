@@ -5,9 +5,7 @@ from screens.mainInventory import MainInvitationScreen
 from screens.mune import InventoryMenuScreen
 from screens.new_customer_page import NewCustomerPage
 from screens.suppliers import SuppliersScreen
-
-
-# from screens.catalog import CatalogScreen
+from screens.catalog import CatalogScreen
 
 class Navigator:
     def __init__(self, page):
@@ -33,5 +31,13 @@ class Navigator:
         NewCustomerPage(self.page, user, self)
     def go_customer(self,user):
         ExistingCustomerScreen(self.page, user, self)
-    # def go_catalog(self, user, mode="inventory"):
-    #     CatalogScreen(self.page, self, user, mode)
+
+    def go_employee_management(self, user):
+        EmployeeManagementScreen(self.page, self, user)
+
+    def go_calculator(self, user):
+        CalculatorScreen(self.page, user, self)
+
+    def go_documents(self, user):
+        self.page.clean()
+        DocumentsScreen(self.page, user, self)
