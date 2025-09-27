@@ -54,7 +54,10 @@ def HomeScreen(page, user, navigator):
                     page.launch_url("https://www.jnjvisionpro.com/he-il/calculators/astigmatism-fitting-calculator/")
                 elif lbl == "מסמכים":
                     navigator.go_documents(user)
-
+                elif lbl == "הזמנות":
+                    navigator.go_orders(user)
+                elif lbl == "ניהול ספקים":
+                    navigator.go_suppliers(user)
             return handler
 
 
