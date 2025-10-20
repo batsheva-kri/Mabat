@@ -38,7 +38,7 @@ def HomeScreen(page, user, navigator):
     base_buttons = [("מחירון", "#ffddd2"), ("המרת מספרים", "#ffe5ec"),
                     ("מחשבון", "#e0fbfc"), ("מסמכים", "#edf6f9"), ("הזמנות", "#fefae0")]
     if is_manager:
-        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("חשבון חודשי", "#ffd6a5")]
+        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("מעקב משלוחים", "#ffd6a5")]
 
     cards = []
     for label, color in base_buttons:
@@ -51,13 +51,15 @@ def HomeScreen(page, user, navigator):
                 elif lbl == "מחירון":
                     navigator.go_catalog(user,"inventory")
                 elif lbl == "המרת מספרים":
-                    page.launch_url("https://www.jnjvisionpro.com/he-il/calculators/astigmatism-fitting-calculator/")
+                    page.launch_url("https://eyecandys.com/blogs/news/how-to-convert-glasses-prescription-to-contacts")
                 elif lbl == "מסמכים":
                     navigator.go_documents(user)
                 elif lbl == "הזמנות":
                     navigator.go_orders(user)
                 elif lbl == "ניהול ספקים":
                     navigator.go_suppliers(user)
+                elif lbl == "מעקב משלוחים":
+                    navigator.go_deliveries(user)
             return handler
 
 

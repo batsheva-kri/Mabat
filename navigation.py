@@ -2,6 +2,7 @@ from screens.calculator import CalculatorScreen
 from screens.customers import ExistingCustomerScreen
 from screens.documents import DocumentsScreen
 from screens.employees import EmployeeManagementScreen
+from screens.deliveries import DeliveriesScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
@@ -43,3 +44,5 @@ class Navigator:
         DocumentsScreen(self.page, user, self)
     def go_catalog(self, user, mode="inventory"):
         CatalogScreen(self.page, self, user, mode)
+    def go_deliveries(self, user):
+        DeliveriesScreen(self.page, self, user)
