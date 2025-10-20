@@ -1,5 +1,6 @@
 import flet as ft
 from logic.db import run_query, run_action
+import os, shutil
 
 
 def CatalogScreen(page, navigator, user, mode="inventory"):
@@ -8,6 +9,15 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
     selected_category = ft.Ref[ft.Dropdown]()
     search_field = ft.Ref[ft.TextField]()
     price_sort = ft.Ref[ft.Dropdown]()
+
+    # --- FilePicker כללי ---
+    file_picker = ft.FilePicker()
+    # מוסיפים רק בפועל בעת הצורך
+    def pick_image():
+        if file_picker not in page.overlay:
+            page.overlay.append(file_picker)
+            page.update()
+        file_picker.pick_files()
 
     # --- טבלת מוצרים ---
     data_table = ft.DataTable(
@@ -76,16 +86,12 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
 
         for i, p in enumerate(products):
             image_control = ft.Image(src=p["image_path"], width=50, height=50) if p["image_path"] else ft.Text("-")
-
-            # המרה של סטטוס לעברית
             status_display = "מלאי" if p["status"] == "inventory" else "הזמנות"
-
             actions = ft.Row([
                 ft.IconButton(icon=ft.Icons.EDIT, tooltip="ערוך",
                               on_click=lambda e, pid=p["id"]: edit_product_dialog(pid)),
                 ft.IconButton(icon=ft.Icons.DELETE, tooltip="מחק", on_click=lambda e, pid=p["id"]: delete_product(pid)),
             ])
-
             data_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -120,7 +126,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 ft.alert("המוצר לא נמצא")
                 return
             product = product_list[0]
-
             name_val = product["name"]
             image_val = product["image_path"]
             cat_query = run_query("SELECT name FROM categories WHERE id=?", (product.get("category_id"),))
@@ -141,7 +146,23 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             price_val = p3_val = p6_val = p12_val = 0
 
         name_field = ft.TextField(label="שם מוצר", value=name_val)
-        image_field = ft.TextField(label="נתיב תמונה", value=image_val)
+
+        # --- FilePicker לשדה תמונה ---
+        selected_image = ft.Text(value=image_val or "-", size=12)
+
+        def pick_image_result(e: ft.FilePickerResultEvent):
+            if e.files:
+                file = e.files[0]
+                os.makedirs("assets", exist_ok=True)
+                dest = os.path.join("assets", file.name)
+                shutil.copy(file.path, dest)
+                selected_image.value = dest
+                page.update()
+
+        file_picker.on_result = pick_image_result
+        pick_button = ft.ElevatedButton("בחר תמונה", on_click=lambda e: pick_image())
+        # -----------------------------------
+
         category_dropdown = ft.Dropdown(label="קטגוריה", options=categories, value=cat_val, width=200)
         status_dropdown = ft.Dropdown(
             label="סטטוס",
@@ -174,8 +195,8 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,))
             sup_id = sup[0]["id"] if sup else None
 
-            # המרה של סטטוס חזרה לאנגלית
             status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
+            image_path = selected_image.value if selected_image.value != "-" else None
 
             if pid:  # עדכון
                 run_action("""
@@ -184,7 +205,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                         preferred_supplier_id=?, price=?, price_3=?, price_6=?, price_12=?
                     WHERE id=?
                 """, (
-                    name_field.value, image_field.value, cat_id, status_value, info_field.value,
+                    name_field.value, image_path, cat_id, status_value, info_field.value,
                     sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
                     float(price_6_field.value or 0), float(price_12_field.value or 0), pid
                 ))
@@ -194,7 +215,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                                           preferred_supplier_id, price, price_3, price_6, price_12)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    name_field.value, image_field.value, cat_id, status_value, info_field.value,
+                    name_field.value, image_path, cat_id, status_value, info_field.value,
                     sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
                     float(price_6_field.value or 0), float(price_12_field.value or 0)
                 ))
@@ -203,7 +224,9 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             update_table()
 
         dlg_content = ft.Column([
-            name_field, image_field, category_dropdown, status_dropdown,
+            name_field,
+            ft.Row([pick_button, selected_image]),
+            category_dropdown, status_dropdown,
             price_field, price_3_field, price_6_field, price_12_field,
             info_field, supplier_dropdown
         ], spacing=10)
@@ -280,7 +303,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
 
             ft.Container(
-                content=ft.ListView(controls=[data_table], on_scroll=ft.ScrollMode.AUTO, padding=0, expand=True),
+                content=ft.ListView(controls=[data_table], padding=0, expand=True),
                 expand=True, padding=10, bgcolor=ft.Colors.WHITE, border_radius=10,
                 border=ft.border.all(1, ft.Colors.GREY_300),
             ),
