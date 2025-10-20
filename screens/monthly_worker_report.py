@@ -196,7 +196,7 @@ def MonthlyWorkerReportScreen(page, user, go_employee_management):
             expand=True,
             spacing=15,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            scroll=ft.ScrollMode.AUTO
+
         )
     )
 
