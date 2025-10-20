@@ -7,6 +7,7 @@ from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
 from screens.mune import InventoryMenuScreen
 from screens.new_customer_page import NewCustomerPage
+from screens.new_invitation_page import NewInvitationPage
 from screens.suppliers import SuppliersScreen
 from screens.catalog import CatalogScreen
 
@@ -43,3 +44,6 @@ class Navigator:
         DocumentsScreen(self.page, user, self)
     def go_catalog(self, user, mode="inventory"):
         CatalogScreen(self.page, self, user, mode)
+    def go_new_invitation(self,user, c_id,is_new_invitation = False, existing_invitation = None):
+        print("customer_id ======================================== ",c_id)
+        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, existing_invitation)

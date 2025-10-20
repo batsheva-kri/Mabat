@@ -1,5 +1,10 @@
+from logic.orders import get_order_by_id
 from logic.utils import run_query
 from datetime import datetime
+
+from logic.writing_in_google_sheet import write
+
+
 def add_supplier(supplier):
     run_query(
         "INSERT INTO suppliers (name, phone, email,googleSheetLink) VALUES (?, ?, ?)",
@@ -255,6 +260,10 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         "quantity": int
     }
     """
+    header = get_order_by_id(customer_invitation_id)
+    print("I am in create_supplier_invitations function")
+    write(supplier_id, header, items)
+    print("I am in create_supplier_invitations function, and I wrote in the sheet")
     if date_ is None:
         from datetime import datetime
         date_ = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -315,3 +324,5 @@ def close_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 1 WHERE id = ?", (order_id,), commit=True)
 def reopen_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 0 WHERE id = ?", (order_id,), commit=True)
+def get_supplier_google_sheet_link(id):
+    return run_query("SELECT googleSheetLink FROM suppliers WHERE id = ?",(id,), fetchall=True)

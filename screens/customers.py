@@ -94,8 +94,8 @@ def ExistingCustomerScreen(page, user, navigator):
         buttons.append(
             ft.ElevatedButton(
                 "✏️ ערוך הזמנה" if order["status"] == "open" else "📄 העתק הזמנה",
-                on_click=lambda e, inv=order: NewInvitationPage(navigator,
-                                                                page, user, cust["id"],
+                on_click=lambda e, inv=order: navigator.go_new_invitation(
+                                                        user, cust["id"],order["status"],
                                                                 existing_invitation=inv
                                                                 )
             )
@@ -105,8 +105,8 @@ def ExistingCustomerScreen(page, user, navigator):
             buttons.append(
                 ft.ElevatedButton(
                     "✏️ כניסה להזמנה",
-                    on_click=lambda e, inv=order: NewInvitationPage(navigator,
-                                                                    page, user, cust["id"],
+                    on_click=lambda e, inv=order: navigator.go_new_invitation(
+                                                                     user, cust["id"],order["status"],
                                                                     existing_invitation=inv
                                                                     )
                 )
@@ -237,8 +237,8 @@ def ExistingCustomerScreen(page, user, navigator):
                 buttons.append(
                     ft.ElevatedButton(
                         "✏️ ערוך הזמנה" if order["status"] == "open" else "📄 העתק הזמנה",
-                        on_click=lambda e, inv=order: NewInvitationPage(navigator,
-                                                                        page, user, cust["id"],
+                        on_click=lambda e, inv=order: navigator.go_new_invitation(
+                                                                         user, cust["id"],order["status"],
                                                                         existing_invitation=inv
                                                                         )
                     )
@@ -249,8 +249,8 @@ def ExistingCustomerScreen(page, user, navigator):
                     buttons.append(
                         ft.ElevatedButton(
                             "✏️ כניסה להזמנה",
-                            on_click=lambda e, inv=order: NewInvitationPage(navigator,
-                                                                            page, user, cust["id"],
+                            on_click=lambda e, inv=order: navigator.go_new_invitation(
+                                                                            user=user, c_id=cust["id"],is_new_invitation=True,
                                                                             existing_invitation=inv
                                                                             )
                         )
@@ -318,10 +318,10 @@ def ExistingCustomerScreen(page, user, navigator):
             controls=[
                 ft.Text("חיפוש לקוח קיים", size=24, weight=ft.FontWeight.BOLD, color="#52b69a"),
                 search_row,
+                back_button,
                 customer_list,
                 ft.Divider(thickness=2),
-                orders_column,
-                back_button  # מוסיפים את כפתור החזרה
+                orders_column
             ],
             spacing=20,
             expand=True

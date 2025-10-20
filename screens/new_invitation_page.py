@@ -1,18 +1,41 @@
 import flet as ft
 from logic.customers import get_customer_by_id
 from logic.inventory import get_all_products
-from logic.orders import add_invitation_items, create_invitation, update_invitation, clear_invitation_items
+from logic.orders import add_invitation_items, create_invitation, update_invitation, clear_invitation_items, new_invitation
 from logic.products import get_catalog_prices
 from logic.suppliers import get_all_suppliers, create_supplier_invitations
 from logic.users import get_all_users
 import datetime
-
 from temprint import generate_invoice_pdf
 
-
-def NewInvitationPage(navigator, page, current_user, customer_id, existing_invitation=None):
+def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitation, existing_invitation=None):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
     print("existing_invitation",existing_invitation)
+    # אם יש הזמנה קיימת אבל היא לא במצב open -> ניצור עותק חדש לעריכה
+    if existing_invitation and existing_invitation.get("status") != "open" and is_new_invitation == False:
+        new_inv = existing_invitation.copy()
+
+        # איפוס שדות
+        new_inv.pop("id", None)
+        new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
+        new_inv["date"] = datetime.datetime.now().isoformat()
+        new_inv["notes"] = ""   # להשאיר ריק למילוי
+        new_inv["status"] = "open"
+        new_inv["shipped"] = 0
+        new_inv["answered"] = 0
+        new_inv["want_shipping"] = 0
+
+        # אפס supplied בכל הפריטים
+        new_items = []
+        for it in new_inv.get("items", []):
+            it = it.copy()
+            it["supplied"] = 0
+            new_items.append(it)
+        new_inv["items"] = new_items
+
+        existing_invitation = new_inv
+    print("existing_invitation", existing_invitation)
+
     # נתוני מוצרים ומשתמשים
     products = get_all_products()
     products_by_name = {p["name"]: p for p in products}
@@ -43,6 +66,17 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
         disabled=not is_editable_checkboxes
     )
     shipped_checkbox.visible = want_shipping_checkbox.value
+    color_field = ft.TextField(
+        label="צבע",
+        value=existing_invitation.get("color", "") if existing_invitation else "",
+        width=150
+    )
+
+    multifocal_field = ft.TextField(
+        label="מולטיפוקל",
+        value=existing_invitation.get("multifocal", "") if existing_invitation else "",
+        width=150
+    )
 
     notes_field = ft.TextField(
         label="הערות",
@@ -204,6 +238,13 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
             }
 
             if initial_item and "row_id" in initial_item:
+                supplied = new_item.get("supplied", 0)
+                ordered = new_item.get("qty", 0)
+                if supplied == ordered:
+                    supplied_display = "✔️"
+                else:
+                    supplied_display = f"{supplied} מתוך {ordered}"
+
                 idx = initial_item["row_id"]
                 items[idx] = new_item
                 items_list.rows[idx] = ft.DataRow(cells=[
@@ -213,7 +254,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
                     ft.DataCell(ft.Text(size)),
                     ft.DataCell(ft.Text(f"{unit_price:.2f}")),
                     ft.DataCell(ft.Text(f"{line_total:.2f}")),
+                    ft.DataCell(ft.Text(supplied_display))
                 ])
+
             else:
                 new_item["row_id"] = len(items)
                 items.append(new_item)
@@ -383,10 +426,13 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
             "shipped": shipped_checkbox.value,
             "curvature": curvature_dropdown.value,
             "prescription": prescription_dropdown.value if prescription_dropdown.value else None,
-            "discount": float(discount_var.value or 0)
+            "discount": float(discount_var.value or 0),
+            "color": color_field.value or None,
+            "multifocal": multifocal_field.value or None
         }
-        print(header)
-        if existing_invitation:
+        if existing_invitation and existing_invitation["status"] != "open":
+            print(status == "open")
+            print(status)
             invitation_id = existing_invitation["id"]
             update_invitation(invitation_id, header)
             # רק אם ההזמנה הייתה פתוחה נעדכן ונחליף את הפריטים
@@ -410,8 +456,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
                     )
         else:
             # יצירה חדשה
-            invitation_id = create_invitation(header)
-            add_invitation_items(invitation_id, items)
+            invitation_id = new_invitation(header,items)
 
         # אם נבחר close וזו הזמנה פתוחה/שנוצרה עכשיו - יצירת הזמנות לספקים כמו קודם
         if close and is_editable_items:
@@ -426,6 +471,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
                 items_for_fn = []
                 for it in items_list_for_supplier:
                     items_for_fn.append({
+                        "product_name": it["product_name"],
                         "product_id": it["product_id"],
                         "size": it["size"],
                         "qty": it["qty"]
@@ -462,6 +508,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
         page.snack_bar = ft.SnackBar(ft.Text(f"PDF נוצר בהצלחה בשם {pdf_file}"), bgcolor=ft.Colors.GREEN)
         page.snack_bar.open = True
         page.update()
+        navigator.go_home(current_user)
     saved_datetime_text = None
     if existing_invitation and existing_invitation.get("date"):
         try:
@@ -490,6 +537,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
             saved_datetime_text if saved_datetime_text else ft.Container(),
             ft.Row([answered_checkbox, want_shipping_checkbox, shipped_checkbox], spacing=20),
             ft.Row([curvature_dropdown, prescription_dropdown], spacing=20),
+            multifocal_field,
+            color_field,
             notes_field,
             user_dropdown,
             products_column,
