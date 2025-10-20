@@ -437,7 +437,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id, existing_invit
                     items=items_for_fn,
                     notes=""
                 )
-            print("Saved supplier invitations")
 
         page.snack_bar = ft.SnackBar(ft.Text("ההזמנה נשמרה בהצלחה!"))
         page.snack_bar.open = True
