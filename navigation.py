@@ -2,7 +2,6 @@ from screens.calculator import CalculatorScreen
 from screens.customers import ExistingCustomerScreen
 from screens.documents import DocumentsScreen
 from screens.employees import EmployeeManagementScreen
-from screens.deliveries import DeliveriesScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
