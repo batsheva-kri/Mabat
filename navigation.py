@@ -46,3 +46,7 @@ class Navigator:
         CatalogScreen(self.page, self, user, mode)
     def go_deliveries(self, user):
         DeliveriesScreen(self.page, self, user)
+    def go_new_invitation(self,user, c_id,is_new_invitation = False, existing_invitation = None, edit = True):
+        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
+    def go_invitations_supply(self,user):
+        Invitation_supply(self, self.page, user)
