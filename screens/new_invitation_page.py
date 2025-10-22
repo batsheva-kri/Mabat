@@ -8,11 +8,11 @@ from logic.users import get_all_users
 import datetime
 from temprint import generate_invoice_pdf
 
-def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitation, existing_invitation=None):
+def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitation,edit, existing_invitation=None):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
     print("existing_invitation",existing_invitation)
     # אם יש הזמנה קיימת אבל היא לא במצב open -> ניצור עותק חדש לעריכה
-    if existing_invitation and existing_invitation.get("status") != "open" and is_new_invitation == False:
+    if existing_invitation and existing_invitation.get("status") != "open" and is_new_invitation == False and edit == True:
         new_inv = existing_invitation.copy()
 
         # איפוס שדות
@@ -24,14 +24,15 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
         new_inv["shipped"] = 0
         new_inv["answered"] = 0
         new_inv["want_shipping"] = 0
-
-        # אפס supplied בכל הפריטים
-        new_items = []
-        for it in new_inv.get("items", []):
-            it = it.copy()
-            it["supplied"] = 0
-            new_items.append(it)
-        new_inv["items"] = new_items
+        if is_new_invitation:
+            # אפס supplied בכל הפריטים
+            new_items = []
+            for it in new_inv.get("items", []):
+                print(it)
+                it = it.copy()
+                it["supplied"] = 0
+                new_items.append(it)
+            new_inv["items"] = new_items
 
         existing_invitation = new_inv
     print("existing_invitation", existing_invitation)
@@ -69,20 +70,21 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
     color_field = ft.TextField(
         label="צבע",
         value=existing_invitation.get("color", "") if existing_invitation else "",
-        width=150
+        width=150,
+        disabled=not is_editable_items
     )
 
     multifocal_field = ft.TextField(
         label="מולטיפוקל",
         value=existing_invitation.get("multifocal", "") if existing_invitation else "",
-        width=150
+        width=150,
+        disabled=not is_editable_items
     )
 
     notes_field = ft.TextField(
         label="הערות",
         multiline=True,
         value=existing_invitation.get("notes", "") if existing_invitation else "",
-        disabled=not is_editable_items
     )
     def request_shipping(invitation_id):
         print(f"REQUEST SHIPPING: invitation_id={invitation_id}")
@@ -102,7 +104,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
         label="קימור",
         options=[ft.dropdown.Option(c, c) for c in curvature_options],
         value=str(existing_invitation.get("curvature")) if existing_invitation and existing_invitation.get("curvature") else None,
-        width=120
+        width=120,
+        disabled=not is_editable_items
     )
     prescription_dropdown = ft.Dropdown(
         label="סוג מרשם",
@@ -112,12 +115,14 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
         ],
         value=existing_invitation.get("prescription") if existing_invitation and existing_invitation.get(
             "prescription") else None,
-        width=150
+        width=150,
+        disabled=not is_editable_items
     )
     user_dropdown = ft.Dropdown(
         label="עובד",
         options=[ft.dropdown.Option(str(u["id"]), u["user_name"]) for u in users],
-        width=200
+        width=200,
+        disabled=not is_editable_items
     )
     if isinstance(current_user, dict):
         user_dropdown.value = str(current_user["id"])
@@ -155,7 +160,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
 
     def create_product_row(label: str, initial_item=None, readonly=False):
         name_var = ft.TextField(label="מוצר", width=250, value=initial_item.get("product_name", "") if initial_item else "", disabled=readonly)
-        qty_var = ft.TextField(label="כמות", width=80, value=str(initial_item.get("qty", 1)) if initial_item else "1", disabled=readonly)
+        quantity_var = ft.TextField(label="כמות", width=80, value=str(initial_item.get("quantity", 1)) if initial_item else "1", disabled=readonly)
         size_var = ft.TextField(label="מידה", width=80, value=initial_item.get("size", "") if initial_item else "", text_align=ft.TextAlign.RIGHT, disabled=readonly)
         suggestions_list = ft.Column()
         supplier_var = ft.Dropdown(width=200, options=[], value=None, disabled=readonly)
@@ -208,11 +213,11 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 return
             product = products_by_name[name]
             try:
-                qty = int(qty_var.value or 1)
+                quantity = int(quantity_var.value or 1)
             except ValueError:
-                qty = 1
+                quantity = 1
             size = size_var.value.strip()
-            prices = get_catalog_prices(product["id"], qty)
+            prices = get_catalog_prices(product["id"], quantity)
             unit_price = float(prices["unit_prices"]["price"])
             line_total = float(prices["total"])
 
@@ -229,7 +234,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 "label": label,
                 "product_id": product["id"],
                 "product_name": name,
-                "qty": qty,
+                "quantity": quantity,
                 "size": size,
                 "unit_price": unit_price,
                 "line_total": line_total,
@@ -239,7 +244,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
 
             if initial_item and "row_id" in initial_item:
                 supplied = new_item.get("supplied", 0)
-                ordered = new_item.get("qty", 0)
+                print("3",new_item)
+                ordered = new_item.get("quantity", 0)
+                print("supplied",supplied, ", ordered", ordered)
                 if supplied == ordered:
                     supplied_display = "✔️"
                 else:
@@ -250,7 +257,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 items_list.rows[idx] = ft.DataRow(cells=[
                     ft.DataCell(ft.Text(label)),
                     ft.DataCell(ft.Text(name)),
-                    ft.DataCell(ft.Text(str(qty))),
+                    ft.DataCell(ft.Text(str(quantity))),
                     ft.DataCell(ft.Text(size)),
                     ft.DataCell(ft.Text(f"{unit_price:.2f}")),
                     ft.DataCell(ft.Text(f"{line_total:.2f}")),
@@ -262,7 +269,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 items.append(new_item)
 
                 supplied = new_item.get("supplied", 0)
-                ordered = new_item.get("qty", 0)
+                print("4",new_item)
+                ordered = new_item.get("quantity", 0)
+                print("supplied",supplied, ", ordered", ordered)
                 if supplied == ordered:
                     supplied_display = "✔️"
                 else:
@@ -272,7 +281,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                     ft.DataRow(cells=[
                         ft.DataCell(ft.Text(new_item.get("label", ""))),
                         ft.DataCell(ft.Text(new_item["product_name"])),
-                        ft.DataCell(ft.Text(str(new_item["qty"]))),
+                        ft.DataCell(ft.Text(str(new_item["quantity"]))),
                         ft.DataCell(ft.Text(new_item["size"])),
                         ft.DataCell(ft.Text(f"{new_item['unit_price']:.2f}")),
                         ft.DataCell(ft.Text(f"{new_item['line_total']:.2f}")),
@@ -285,7 +294,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
 
         return ft.Column([
             ft.Text(label, weight=ft.FontWeight.BOLD),
-            ft.Row([name_var, qty_var, size_var, supplier_var], spacing=10),
+            ft.Row([name_var, quantity_var, size_var, supplier_var], spacing=10),
             suggestions_list,
             ft.ElevatedButton(f"➕ {label}", on_click=add_to_items_list, disabled=readonly)
         ])
@@ -300,7 +309,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
 
         return ft.Column([
             ft.Text(label, weight=ft.FontWeight.BOLD),
-            ft.Row([name_var, qty_var, size_var, supplier_var], spacing=10),
+            ft.Row([name_var, quantity_var, size_var, supplier_var], spacing=10),
             suggestions_list,
             action_button
         ])
@@ -311,6 +320,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
         items.clear()
         for i, it in enumerate(existing_invitation.get("items", [])):
             unit_price = it.get("unit_price", it.get("price", 0))
+            print("1",it)
             line_total = it.get("line_total", unit_price * it.get("qty", 1))
             it["unit_price"] = unit_price
             it["line_total"] = line_total
@@ -319,7 +329,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
 
             # חישוב עמודת "סופק"
             supplied = it.get("supplied", 0)
+            print("2",it)
             ordered = it.get("qty", 0)
+            print("supplied",supplied, ", ordered", ordered)
             if supplied == ordered:
                 supplied_display = "✔️"
             else:
@@ -330,7 +342,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 ft.DataRow(cells=[
                     ft.DataCell(ft.Text(it.get("label", ""))),
                     ft.DataCell(ft.Text(it.get("product_name", ""))),
-                    ft.DataCell(ft.Text(str(it.get("qty", 0)))),
+                    ft.DataCell(ft.Text(str(it.get("quantity", 0)))),
                     ft.DataCell(ft.Text(it.get("size", ""))),
                     ft.DataCell(ft.Text(f"{unit_price:.2f}")),
                     ft.DataCell(ft.Text(f"{line_total:.2f}")),
@@ -344,7 +356,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                     "עדכן עין ימין" if i == 0 else "עדכן עין שמאל" if i == 1 else f"עדכן מוצר {i + 1}")
                 row = create_product_row(label, initial_item=it, readonly=not is_editable_items)
                 products_column.controls.append(row)
-
+        recompute_total()
     else:
         # ברירת מחדל – עין ימין ושמאל ריקות. כפתור שישתנה לטקסט עדכון רק אם existing_invitation
         right_eye_row = create_product_row("עין ימין", initial_item=None, readonly=not is_editable_items)
@@ -377,25 +389,25 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
             for ctrl in products_column.controls:
                 if isinstance(ctrl, ft.Column):
                     # לקיחת שדות מתוך ה-Row
-                    row_controls = ctrl.controls[1].controls  # [name_var, qty_var, size_var, supplier_var]
+                    row_controls = ctrl.controls[1].controls  # [name_var, quantity_var, size_var, supplier_var]
                     name = row_controls[0].value.strip()
                     try:
-                        qty = int(row_controls[1].value or 1)
+                        quantity = int(row_controls[1].value or 1)
                     except Exception:
-                        qty = 1
+                        quantity = 1
                     size = row_controls[2].value.strip()
                     supplier_id = int(row_controls[3].value) if row_controls[3].value else None
 
                     if name in products_by_name:
                         product = products_by_name[name]
-                        prices = get_catalog_prices(product["id"], qty)
+                        prices = get_catalog_prices(product["id"], quantity)
                         unit_price = float(prices["unit_prices"]["price"])
                         line_total = float(prices["total"])
                         items.append({
                             "label": ctrl.controls[0].value,  # כותרת השורה
                             "product_id": product["id"],
                             "product_name": name,
-                            "qty": qty,
+                            "quantity": quantity,
                             "size": size,
                             "unit_price": unit_price,
                             "line_total": line_total,
@@ -412,7 +424,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
             discount = 0
         total_price = max(subtotal - discount, 0)
         status = "invented" if close else "open"
-
         # הכנת header כולל השדות החדשים שביקשת לשמור
         header = {
             "customer_id": customer_id,
@@ -434,6 +445,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
             print(status == "open")
             print(status)
             invitation_id = existing_invitation["id"]
+            if not edit:
+                header["_date"] = existing_invitation["date"]
             update_invitation(invitation_id, header)
             # רק אם ההזמנה הייתה פתוחה נעדכן ונחליף את הפריטים
             if is_editable_items:
@@ -442,12 +455,12 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                 # ועדכן טבלה מקומית
                 items_list.rows.clear()
                 for i, it in enumerate(items):
-                    supplied_display = "✔️" if it["supplied"] == it["qty"] else f"{it['supplied']} מתוך {it['qty']}"
+                    supplied_display = "✔️" if it["supplied"] == it["quantity"] else f"{it['supplied']} מתוך {it['quantity']}"
                     items_list.rows.append(
                         ft.DataRow(cells=[
                             ft.DataCell(ft.Text(it.get("label", ""))),
                             ft.DataCell(ft.Text(it.get("product_name", ""))),
-                            ft.DataCell(ft.Text(str(it.get("qty", 0)))),
+                            ft.DataCell(ft.Text(str(it.get("quantity", 0)))),
                             ft.DataCell(ft.Text(it.get("size", ""))),
                             ft.DataCell(ft.Text(f"{it.get('unit_price', 0):.2f}")),
                             ft.DataCell(ft.Text(f"{it.get('line_total', 0):.2f}")),
@@ -474,7 +487,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
                         "product_name": it["product_name"],
                         "product_id": it["product_id"],
                         "size": it["size"],
-                        "qty": it["qty"]
+                        "quantity": it["quantity"]
                     })
 
                 create_supplier_invitations(
@@ -546,11 +559,20 @@ def NewInvitationPage(navigator, page, current_user, customer_id,is_new_invitati
             items_list,
             ft.Row([discount_var, total_var], spacing=20),
             ft.Row([
-                ft.ElevatedButton("🖨️ הדפסה חשבונית", on_click=lambda e:print_invitation()),
-                ft.ElevatedButton("💾 סגירת ההזמנה", on_click=lambda e: save_invitation(close=True)),
-                ft.ElevatedButton("💾 שמירת ההזמנה פתוחה", on_click=lambda e: save_invitation(close=False), disabled=(not is_editable_items)),
-                ft.ElevatedButton("חזרה", on_click=lambda e: navigator.go_customer(current_user))
+                ft.ElevatedButton("🖨️ הדפסה חשבונית", on_click=lambda e: print_invitation()),
+                ft.ElevatedButton("💾 סגירת ההזמנה" if edit else " שמירת השינויים 💾",
+                                  on_click=lambda e: save_invitation(close=True)),
+                ft.ElevatedButton("💾 שמירת ההזמנה פתוחה", on_click=lambda e: save_invitation(close=False),
+                                  disabled=(not is_editable_items)),
+                ft.ElevatedButton("חזרה", on_click=lambda e: navigator.go_customer(current_user)),
+                # כפתור חדש – חזרה להזמנות שסופקו, רק אם edit == False
+                ft.ElevatedButton(
+                    "📦 חזרה להזמנות שסופקו",
+                    on_click=lambda e: navigator.go_invitations_supply(current_user),
+                    visible=(not edit)
+                )
             ], spacing=10)
+
         ], spacing=15)
     )
     page.update()

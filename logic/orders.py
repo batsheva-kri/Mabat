@@ -77,7 +77,7 @@ def update_invitation(invitation_id: int, header: dict):
             curvature = ?,
             prescription = ?,
             color = ?,
-            multifokal = ?,
+            multifokal = ?
         WHERE id = ?
     """
     params = (
@@ -188,3 +188,7 @@ def auto_save_field(invitation_id, field, value):
     query = f"UPDATE customer_invitations SET {field} = ? WHERE id = ?"
     run_query(query, (value, invitation_id), commit=True)
     print(f"עודכן {field} ל-{value} להזמנה {invitation_id}")
+def get_invitation_items_by_invitation_id(customer_invitation_id):
+    invitations = run_query("SELECT * FROM  customer_invitation_items WHERE invitation_id =?", (customer_invitation_id,),fetchall=True)
+    print("invitations", invitations)
+    return invitations

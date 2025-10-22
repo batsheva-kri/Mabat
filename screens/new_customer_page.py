@@ -9,13 +9,6 @@ def  NewCustomerPage(page,current_user, navigator):
     email_var = ft.TextField(label="אימייל", width=200)
     notes_var = ft.TextField(label="הערות", multiline=True, width=400, height=80)
 
-    def go_new_invitation(new_customer_id):
-        NewInvitationPage(
-            navigator,
-            page=page,
-            current_user=current_user,
-            customer_id=new_customer_id
-        )
     def save_customer(e):
         name = name_var.value.strip()
         if not name:
@@ -26,7 +19,11 @@ def  NewCustomerPage(page,current_user, navigator):
 
         # שימוש בפונקציה מהלוגיקה שלך
         new_id = add_customer(name, phone_var.value.strip(), email_var.value.strip(), notes_var.value.strip())
-        go_new_invitation(new_id)
+        navigator.go_new_invitation(
+            user=current_user,
+            c_id=new_id,
+            is_new_invitation = True
+        )
 
     page.controls.clear()
     page.add(

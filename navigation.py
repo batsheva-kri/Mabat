@@ -1,6 +1,8 @@
+from screens.Invitation_supply import Invitation_supply
 from screens.calculator import CalculatorScreen
 from screens.customers import ExistingCustomerScreen
 from screens.documents import DocumentsScreen
+from screens.deliveries import DeliveriesScreen
 from screens.employees import EmployeeManagementScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
@@ -47,4 +49,6 @@ class Navigator:
     def go_deliveries(self, user):
         DeliveriesScreen(self.page, self, user)
     def go_new_invitation(self,user, c_id,is_new_invitation = False, existing_invitation = None, edit = True):
-        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit,  existing_invitation)
+        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
+    def go_invitations_supply(self,user):
+        Invitation_supply(self, self.page, user)

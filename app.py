@@ -38,6 +38,4 @@ def main(page: ft.Page):
         )
         page.overlay.append(reminder_card)
         page.update()
-
 ft.app(target=main)
-

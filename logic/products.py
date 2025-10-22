@@ -59,4 +59,6 @@ def get_catalog_prices(product_id, amount):
         "unit_prices": prices,
         "total": total
     }
-
+def get_product_name_by_id(product_id):
+    name = run_query("SELECT name FROM products WHERE id = ?",(product_id,),fetchone=True)
+    return name["name"]
