@@ -1,10 +1,17 @@
 from logic.utils import run_query
+from logic.writing_in_google_sheet import write
 
+def get_order_by_id(customer_invitation_id):
+    return run_query("SELECT * FROM  customer_invitations WHERE id =?",(customer_invitation_id,),fetchone=True)
+def new_invitation(header: dict ,items: list[dict]):
+    invitation_id = create_invitation(header)
+    add_invitation_items(invitation_id, items)
+    return invitation_id
 def create_invitation(header: dict):
     query = """
     INSERT INTO customer_invitations
-        (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, curvature, prescription)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, curvature, prescription,color,multifokal)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (
         header.get("customer_id"),
@@ -18,6 +25,8 @@ def create_invitation(header: dict):
         header.get("shipped", 0),         # תואם ל-delivery_sent
         header.get("curvature"),
         header.get("prescription"),
+        header.get("color"),
+        header.get("multifokal")
     )
     invitation_id = run_query(query, params, commit=True)
     print(invitation_id)
@@ -66,7 +75,9 @@ def update_invitation(invitation_id: int, header: dict):
             delivery_requested = ?,
             delivery_sent = ?,
             curvature = ?,
-            prescription = ?
+            prescription = ?,
+            color = ?,
+            multifokal = ?
         WHERE id = ?
     """
     params = (
@@ -81,6 +92,8 @@ def update_invitation(invitation_id: int, header: dict):
         header.get("shipped", 0),
         header.get("curvature"),
         header.get("prescription"),
+        header.get("color"),
+        header.get("multifokal"),
         invitation_id
     )
     run_query(query, params, commit=True)
@@ -153,6 +166,8 @@ def get_latest_orders(limit=1500):
             "shipped":inv.get("delivery_sent"),
             "curvature":inv.get("curvature"),
             "prescription":inv.get("prescription"),
+            "color" :inv.get("color"),
+            "multifokal":inv.get("multifokal"),
             "items": items
         }
 
@@ -173,3 +188,7 @@ def auto_save_field(invitation_id, field, value):
     query = f"UPDATE customer_invitations SET {field} = ? WHERE id = ?"
     run_query(query, (value, invitation_id), commit=True)
     print(f"עודכן {field} ל-{value} להזמנה {invitation_id}")
+def get_invitation_items_by_invitation_id(customer_invitation_id):
+    invitations = run_query("SELECT * FROM  customer_invitation_items WHERE invitation_id =?", (customer_invitation_id,),fetchall=True)
+    print("invitations", invitations)
+    return invitations

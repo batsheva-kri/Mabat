@@ -1,5 +1,10 @@
+from logic.orders import get_order_by_id
 from logic.utils import run_query
 from datetime import datetime
+
+from logic.writing_in_google_sheet import write
+
+
 def add_supplier(supplier):
     run_query(
         "INSERT INTO suppliers (name, phone, email,googleSheetLink) VALUES (?, ?, ?)",
@@ -108,12 +113,17 @@ def get_closed_unsupplied_invitations(supplier_id):
     ועדיין לא סופקו (supplied = 0)
     """
     return run_query(
-        "SELECT * FROM supplier_invitations WHERE supplier_id = ? AND close = 1 AND supplied = 0",(supplier_id,),
+        "SELECT * FROM supplier_invitations WHERE supplier_id = ? AND close = 1 AND supplied < quantity",(supplier_id,),
         fetchall=True
     )
-def mark_supplied(invitation_id):
+def mark_supplied(invitation_id, supplied):
     run_query(
-        "UPDATE supplier_invitations SET supplied = 1 WHERE id = ?",
+        "UPDATE supplier_invitations SET supplied = ? WHERE id = ?",
+        (supplied, invitation_id,),
+        commit=True
+    )
+    run_query(
+        "UPDATE supplier_invitations SET close = 1 WHERE id = ?",
         (invitation_id,),
         commit=True
     )
@@ -255,6 +265,10 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         "quantity": int
     }
     """
+    header = get_order_by_id(customer_invitation_id)
+    print("I am in create_supplier_invitations function")
+    write(supplier_id, header, items)
+    print("I am in create_supplier_invitations function, and I wrote in the sheet")
     if date_ is None:
         from datetime import datetime
         date_ = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -315,3 +329,29 @@ def close_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 1 WHERE id = ?", (order_id,), commit=True)
 def reopen_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 0 WHERE id = ?", (order_id,), commit=True)
+def get_supplier_google_sheet_link(id):
+    return run_query("SELECT googleSheetLink FROM suppliers WHERE id = ?",(id,), fetchall=True)
+def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None):
+    query = """
+        SELECT id FROM supplier_invitations
+        WHERE supplier_id = ?
+          AND product_id = (SELECT id FROM products WHERE name = ?)
+          AND close = 0
+    """
+    params = [supplier_id, product_name]
+
+    if size:
+        query += " AND size = ?"
+        params.append(size)
+    if cylinder:
+        query += " AND cylinder = ?"
+        params.append(cylinder)
+    if angle:
+        query += " AND angle = ?"
+        params.append(angle)
+
+    query += " ORDER BY id LIMIT 1"
+
+    inv = run_query(query, tuple(params), fetchall=True)
+    print("inv",inv)
+    return inv
