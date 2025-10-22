@@ -1,13 +1,15 @@
+from screens.Invitation_supply import Invitation_supply
 from screens.calculator import CalculatorScreen
 from screens.customers import ExistingCustomerScreen
 from screens.documents import DocumentsScreen
-from screens.employees import EmployeeManagementScreen
 from screens.deliveries import DeliveriesScreen
+from screens.employees import EmployeeManagementScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
 from screens.mune import InventoryMenuScreen
 from screens.new_customer_page import NewCustomerPage
+from screens.new_invitation_page import NewInvitationPage
 from screens.suppliers import SuppliersScreen
 from screens.catalog import CatalogScreen
 
