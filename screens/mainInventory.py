@@ -54,6 +54,7 @@ def MainInvitationScreen(page, navigator, current_user):
             title=ft.Text("בחר סוג לקוח"),
             content=ft.Column(
                 controls=[
+                    ft.ElevatedButton("הזמנה שהגיעה", on_click=lambda e: navigator.go_invitations_supply(current_user)),
                     ft.ElevatedButton("לקוח קיים", on_click=lambda e: asyncio.run(select_existing(e))),
                     ft.ElevatedButton("לקוח חדש", on_click=lambda e: asyncio.run(select_new(e)))
                 ],

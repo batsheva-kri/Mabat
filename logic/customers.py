@@ -32,7 +32,8 @@ def get_orders_for_customer(customer_id):
            p.name AS product_name,
            cii.size,
            cii.quantity AS qty,
-           cii.price AS unit_price
+           cii.price AS unit_price,
+           cii.supplied
     FROM customer_invitations ci
     JOIN customer_invitation_items cii ON ci.id = cii.invitation_id
     JOIN products p ON cii.product_id = p.id
@@ -92,4 +93,7 @@ def add_customer(name: str, phone: str, email: str = None, notes: str = None) ->
         row = run_query("SELECT last_insert_rowid() AS id", (), fetchone=True)
         return row["id"] if isinstance(row, dict) else row[0]
 def get_customer_by_id(customer_id):
+    print(customer_id)
     return run_query("SELECT * FROM customers WHERE id = ?", (customer_id,), fetchall=True)
+def get_customer_name_by_id(id):
+    return run_query("SELECT name FROM customers WHERE id = ?",(id,),fetchone=True)
