@@ -51,13 +51,15 @@ def HomeScreen(page, user, navigator):
                 elif lbl == "מחירון":
                     navigator.go_catalog(user,"inventory")
                 elif lbl == "המרת מספרים":
-                    page.launch_url("https://www.jnjvisionpro.com/he-il/calculators/astigmatism-fitting-calculator/")
+                    page.launch_url("https://eyecandys.com/blogs/news/how-to-convert-glasses-prescription-to-contacts")
                 elif lbl == "מסמכים":
                     navigator.go_documents(user)
                 elif lbl == "הזמנות":
                     navigator.go_orders(user)
                 elif lbl == "ניהול ספקים":
                     navigator.go_suppliers(user)
+                elif lbl == "מעקב משלוחים":
+                    navigator.go_deliveries(user)
             return handler
 
 
