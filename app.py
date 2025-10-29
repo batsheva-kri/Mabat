@@ -1,5 +1,4 @@
 import flet as ft
-
 from logic.reminder import check_or_create_reminder, mark_done
 from navigation import Navigator
 
@@ -26,7 +25,7 @@ def main(page: ft.Page):
                 content=ft.Column(
                     [
                         ft.Text("תזכורת לבדיקת מלאי!", size=20, weight=ft.FontWeight.BOLD),
-                        ft.Text("יש לבצע בדיקת מלאי החודש."),
+                        ft.Text("היום יום שלישי, יש לבצע היום בדיקת מלאי."),
                         ft.ElevatedButton("סימנתי שביצעתי", on_click=on_done, bgcolor="green", color="white"),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,

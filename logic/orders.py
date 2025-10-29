@@ -8,33 +8,62 @@ def new_invitation(header: dict ,items: list[dict]):
     add_invitation_items(invitation_id, items)
     return invitation_id
 def create_invitation(header: dict):
-    query = """
-    INSERT INTO customer_invitations
-        (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, curvature, prescription,color,multifokal)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    params = (
-        header.get("customer_id"),
-        header.get("created_by_user_id"),
-        header.get("date_"),
-        header.get("notes"),
-        header.get("total_price"),
-        header.get("status"),
-        header.get("call"),
-        header.get("want_shipping", 0),   # תואם ל-delivery_requested
-        header.get("shipped", 0),         # תואם ל-delivery_sent
-        header.get("curvature"),
-        header.get("prescription"),
-        header.get("color"),
-        header.get("multifokal")
-    )
+    print(header.get("curvature"))
+    print(header.get("curvature") is None)
+    print(type(header.get("curvature")))
+    curvature_val = header.get("curvature")
+
+    # 💡 הוספת בדיקה למחרוזת "None" (או "none", למקרה הצורך)
+    if curvature_val is None or curvature_val == "None":
+        print("I am in. Using SHORT query (omitting curvature).")
+        print("I am in")
+        query = """
+        INSERT INTO customer_invitations
+            (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, prescription,color,multifokal)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            header.get("customer_id"),
+            header.get("created_by_user_id"),
+            header.get("date_"),
+            header.get("notes"),
+            header.get("total_price"),
+            header.get("status"),
+            header.get("call",0),
+            header.get("want_shipping", 0),   # תואם ל-delivery_requested
+            header.get("shipped", 0),         # תואם ל-delivery_sent
+            header.get("prescription"),
+            header.get("color"),
+            header.get("multifokal")
+        )
+    else:
+        query = """
+               INSERT INTO customer_invitations
+                   (customer_id, created_by_user_id, date_, notes, total_price, status, call, delivery_requested, delivery_sent, curvature, prescription,color,multifokal)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               """
+        params = (
+            header.get("customer_id"),
+            header.get("created_by_user_id"),
+            header.get("date_"),
+            header.get("notes"),
+            header.get("total_price"),
+            header.get("status"),
+            header.get("call", 0),
+            header.get("want_shipping", 0),  # תואם ל-delivery_requested
+            header.get("shipped", 0),  # תואם ל-delivery_sent
+            header.get("curvature"),
+            header.get("prescription"),
+            header.get("color"),
+            header.get("multifokal")
+        )
     invitation_id = run_query(query, params, commit=True)
     print(invitation_id)
     return invitation_id
 def add_invitation_items(invitation_id: int, items: list[dict]):
     """
     מוסיף פריטים להזמנה
-    כל item = {product_id, qty, size, unit_price, line_total, supplied}
+    כל item = {product_id, quantity, size, unit_price, line_total, supplied}
     """
     query = """
     INSERT INTO customer_invitation_items
@@ -45,7 +74,7 @@ def add_invitation_items(invitation_id: int, items: list[dict]):
         params = (
             invitation_id,
             it["product_id"],
-            it["qty"],
+            it["quantity"],
             it["size"],
             it["unit_price"],
             it["supplied"],
@@ -98,6 +127,47 @@ def update_invitation(invitation_id: int, header: dict):
     )
     run_query(query, params, commit=True)
     return True
+# פונקציה חדשה לעדכון שדות סטטוס בלבד
+def update_invitation_status(invitation_id: int, call=None, delivery_requested=None, delivery_sent=None, collected= None):
+    """
+    עדכון שדות סטטוס בלבד בהזמנה.
+    """
+    existing = run_query(
+        "SELECT id FROM customer_invitations WHERE id = ?",
+        (invitation_id,),
+        fetchone=True
+    )
+    if not existing:
+        return False
+
+    updates = []
+    params = []
+
+    if call is not None:
+        updates.append("call = ?")
+        params.append(call)
+    if delivery_requested is not None:
+        updates.append("delivery_requested = ?")
+        params.append(delivery_requested)
+    if delivery_sent is not None:
+        updates.append("delivery_sent = ?")
+        params.append(delivery_sent)
+    if collected is not None:
+        updates.append("status = ?")
+        if collected == "collected":
+            params.append("collected")
+        else:
+            params.append("in_shop")
+
+    if not updates:
+        return True  # אין מה לעדכן
+
+    query = f"UPDATE customer_invitations SET {', '.join(updates)} WHERE id = ?"
+    params.append(invitation_id)
+
+    run_query(query, tuple(params), commit=True)
+    return True
+
 def clear_invitation_items(invitation_id: int):
     """
     מוחק את כל הפריטים הקשורים להזמנה מהטבלה customer_invitation_items אם ההזמנה קיימת
@@ -139,7 +209,7 @@ def get_latest_orders(limit=1500):
     for inv in invitations:
         # שליפה של כל הפריטים להזמנה זו
         items_query = """
-            SELECT cii.id, cii.invitation_id, p.name AS product_name, p.id as product_id, cii.quantity AS qty,
+            SELECT cii.id, cii.invitation_id, p.name AS product_name, p.id as product_id, cii.quantity AS quantity,
                    cii.size, cii.price as unit_price, cii.supplied
             FROM customer_invitation_items cii
             JOIN products p ON p.id = cii.product_id
@@ -149,7 +219,7 @@ def get_latest_orders(limit=1500):
 
         # חישוב line_total לכל פריט
         for item in items:
-            item["line_total"] = item["qty"] * item["unit_price"] if item["unit_price"] is not None else 0
+            item["line_total"] = item["quantity"] * item["unit_price"] if item["unit_price"] is not None else 0
             item["supplied"] =item["supplied"]
 
         # הכנה של אובייקט הזמנה

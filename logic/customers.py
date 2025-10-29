@@ -31,7 +31,7 @@ def get_orders_for_customer(customer_id):
            cii.product_id,
            p.name AS product_name,
            cii.size,
-           cii.quantity AS qty,
+           cii.quantity AS quantity,
            cii.price AS unit_price,
            cii.supplied
     FROM customer_invitations ci
@@ -64,10 +64,10 @@ def get_orders_for_customer(customer_id):
         invitations[inv_id]["items"].append({
             "product_id": r["product_id"],
             "product_name": r["product_name"],
-            "qty": r["qty"],
+            "quantity": r["quantity"],
             "size": r["size"],
             "unit_price": r["unit_price"],
-            "line_total": r["unit_price"] * r["qty"],
+            "line_total": r["unit_price"] * r["quantity"],
             "supplied": r["supplied"]
         })
     return list(invitations.values())

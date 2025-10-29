@@ -27,7 +27,7 @@ def write(supplier_id,header:dict,items):
         product = item['product_name']  # כאן אפשר לשים לוגיקה למציאת "הכי דומה"
         if product == "אואזיס":
             product = "אואסיס בודד"
-        qty = item['qty']
+        quantity = item['quantity']
         bc = header.get('curvature', "")
 
         # פיצול size
@@ -51,7 +51,7 @@ def write(supplier_id,header:dict,items):
             name,
             order_date,
             product,
-            qty,
+            quantity,
             bc,
             number,
             cylinder,
@@ -66,5 +66,43 @@ def write(supplier_id,header:dict,items):
     for item in items:
         print(item)
         row = item_to_row(header, item)
+        print(row)
+        sheet.append_row(row, value_input_option="USER_ENTERED")
+
+def write_supplier2_google_sheet(supplier_id, header: dict, items):
+    from logic.suppliers import get_supplier_google_sheet_link
+    sheet_url = get_supplier_google_sheet_link(supplier_id)
+    print(sheet_url)
+    sheet = client.open_by_url(sheet_url[0]["googleSheetLink"]).sheet1
+
+    def item_to_row_supplier2(header, item):
+        order_date = datetime.now().strftime("%d/%m/%Y")
+        product = item['product_name']
+        if product == "אואזיס":
+            product = "אואסיס בודד"
+        quantity = item['quantity']
+
+        # פיצול size
+        size_parts = item['size'].split()
+        number = size_parts[0] if len(size_parts) > 0 else ""
+        cylinder = size_parts[1] if len(size_parts) > 1 else ""
+        degrees = size_parts[2] if len(size_parts) > 2 else ""
+
+        # הערות – אפשר למלא כאן מה שנוח לך
+        notes = ""
+
+        return [
+            order_date,  # תאריך
+            product,  # שם המוצר
+            number,  # מידה
+            cylinder,  # צילינדר
+            degrees,  # מעלות
+            quantity,  # כמות
+            notes  # הערות
+        ]
+
+    for item in items:
+        print(item)
+        row = item_to_row_supplier2(header, item)
         print(row)
         sheet.append_row(row, value_input_option="USER_ENTERED")
