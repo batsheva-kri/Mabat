@@ -54,7 +54,7 @@ def get_invitation_products():
     return run_query(query, fetchall=True)
 def get_all_products():
     query = """
-        SELECT id, name, status, category_id
+        SELECT *
         FROM products
         ORDER BY name
     """

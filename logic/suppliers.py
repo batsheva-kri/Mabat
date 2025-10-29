@@ -2,7 +2,7 @@ from logic.orders import get_order_by_id
 from logic.utils import run_query
 from datetime import datetime
 
-from logic.writing_in_google_sheet import write
+from logic.writing_in_google_sheet import write, write_supplier2_google_sheet
 
 
 def add_supplier(supplier):
@@ -117,16 +117,43 @@ def get_closed_unsupplied_invitations(supplier_id):
         fetchall=True
     )
 def mark_supplied(invitation_id, supplied):
-    run_query(
-        "UPDATE supplier_invitations SET supplied = ? WHERE id = ?",
-        (supplied, invitation_id,),
-        commit=True
-    )
-    run_query(
-        "UPDATE supplier_invitations SET close = 1 WHERE id = ?",
+
+    # שולפים את ההזמנה
+    inv = run_query(
+        "SELECT quantity, supplied FROM supplier_invitations WHERE id = ?",
         (invitation_id,),
-        commit=True
+        fetchone=True
     )
+    print("mark ", inv)
+    print(invitation_id)
+    if inv:
+        quantity = inv["quantity"]
+        total_supplied = inv["supplied"] + supplied
+
+        # לא לעבור על הכמות שהוזמנה
+        if total_supplied > quantity:
+            total_supplied = quantity
+
+        # עדכון כמות שסופקה בפועל
+        run_query(
+            "UPDATE supplier_invitations SET supplied = ? WHERE id = ?",
+            (total_supplied, invitation_id),
+            commit=True
+        )
+
+        # אם כל הכמות סופקה — נסגור את ההזמנה
+        if total_supplied >= quantity:
+            run_query(
+                "UPDATE supplier_invitations SET close = 1 WHERE id = ?",
+                (invitation_id,),
+                commit=True
+            )
+            print(f"הזמנת ספק {invitation_id} נסגרה (כל הכמות סופקה)")
+        else:
+            print(f"הזמנת ספק {invitation_id} פתוחה – סופק {total_supplied}/{quantity}")
+    else:
+        print(f"⚠️ לא נמצאה הזמנת ספק עם id={invitation_id}")
+
 def mark_invitations_as_closed(invitations):
     """
     מקבלת רשימת הזמנות (מהפונקציה get_open_supplier_invitations)
@@ -267,7 +294,11 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
     """
     header = get_order_by_id(customer_invitation_id)
     print("I am in create_supplier_invitations function")
-    write(supplier_id, header, items)
+    if supplier_id == 6:#לשנות בהמשך לפי המסד האמיתי
+        write_supplier2_google_sheet(supplier_id, header, items)
+    else:
+        write(supplier_id, header, items)
+
     print("I am in create_supplier_invitations function, and I wrote in the sheet")
     if date_ is None:
         from datetime import datetime
@@ -286,7 +317,7 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
             notes,
             it["product_id"],
             it.get("size", ""),
-            it.get("qty", 1),
+            it.get("quantity", 1),
             customer_invitation_id,
             0,   # supplied (ברירת מחדל לא סופק)
             0    # close (ברירת מחדל לא סגור)
@@ -331,27 +362,81 @@ def reopen_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 0 WHERE id = ?", (order_id,), commit=True)
 def get_supplier_google_sheet_link(id):
     return run_query("SELECT googleSheetLink FROM suppliers WHERE id = ?",(id,), fetchall=True)
-def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None):
+# def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None):
+#     query = """
+#         SELECT id FROM supplier_invitations
+#         WHERE supplier_id = ?
+#           AND product_id = (SELECT id FROM products WHERE name = ?)
+#           AND close = 0
+#     """
+#     params = [supplier_id, product_name]
+#
+#     # בונים מחרוזת אחת שמכילה את כל הערכים
+#     if size or cylinder or angle:
+#         combined = " ".join(filter(None, [size, cylinder, angle]))
+#         query += " AND size = ?"
+#         params.append(combined)
+#
+#     query += " ORDER BY id LIMIT 1"
+#     print("query: ",query)
+#     print("params: ",params)
+#     inv = run_query(query, tuple(params), fetchall=True)
+#     print("inv", inv)
+#     return inv
+def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None, color=None, multifocal=None, curvature=None):
+    combined = " ".join(filter(None, [size, cylinder, angle])) if (size or cylinder or angle) else None
+
+    # שליפת כל ההזמנות הפתוחות של הספק למוצר
     query = """
-        SELECT id FROM supplier_invitations
+        SELECT id, product_id, size FROM supplier_invitations
         WHERE supplier_id = ?
           AND product_id = (SELECT id FROM products WHERE name = ?)
           AND close = 0
     """
     params = [supplier_id, product_name]
 
-    if size:
+    if combined:
         query += " AND size = ?"
-        params.append(size)
-    if cylinder:
-        query += " AND cylinder = ?"
-        params.append(cylinder)
-    if angle:
-        query += " AND angle = ?"
-        params.append(angle)
+        params.append(combined)
 
-    query += " ORDER BY id LIMIT 1"
+    query += " ORDER BY id"
+    inv_list = run_query(query, tuple(params), fetchall=True)
+    print("inv_list:", inv_list)
 
-    inv = run_query(query, tuple(params), fetchall=True)
-    print("inv",inv)
-    return inv
+    for inv in inv_list:
+        supplier_inv_id = inv['id']
+        product_id = inv['product_id']
+
+        # בניית בדיקה מול customer_invitations + customer_invitation_items
+        cust_query = """
+            SELECT ci.id
+            FROM customer_invitations ci
+            JOIN customer_invitation_items cii
+              ON ci.id = cii.invitation_id
+            WHERE cii.product_id = ?
+        """
+        cust_params = [product_id]
+
+        # הוספת בדיקה עבור color, multifocal, curvature אם מלאים
+        if color is not None:
+            cust_query += " AND ci.color = ?"
+            cust_params.append(color)
+        if multifocal is not None:
+            cust_query += " AND ci.multifocal = ?"
+            cust_params.append(multifocal)
+        if curvature is not None:
+            cust_query += " AND ci.curvature = ?"
+            cust_params.append(curvature)
+
+        if combined:
+            cust_query += " AND cii.size = ?"
+            cust_params.append(combined)
+
+        cust_items = run_query(cust_query, tuple(cust_params), fetchall=True)
+
+        if cust_items:
+            # מצאנו הזמנה מתאימה
+            return supplier_inv_id
+
+    # אם הגענו לכאן, שום הזמנה לא מתאימה
+    return None
