@@ -42,9 +42,13 @@ def run_query(query, params=()):
         conn.close()
 
 def run_action(query, params=()):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(query, params)
-    conn.commit()
-
-    conn.close()
+        try:
+            conn = get_connection()  # שימוש ב-get_connection כדי לשמור על WAL והגדרות אחרות
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()  # חשוב כדי שהשינויים יישמרו
+            print("Action executed:", query, "Params:", params)
+        except sqlite3.Error as e:
+            print("SQL Action failed:", e)
+        finally:
+            conn.close()
