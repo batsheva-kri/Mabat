@@ -1,10 +1,21 @@
 import flet as ft
 from logic.inventory import get_category_name, sizes_for_category, get_inventory_products
-
-def InventoryScreen(page, current_user, navigator, save_fn, supplier_id=0):
+from logic.suppliers import get_all_suppliers
+def InventoryScreen(page, current_user, navigator, save_fn, show_dropdown=False):
     page.title = "מסך מלאי"
-
     content = []
+
+    # --- Dropdown של ספקים אם נדרש ---
+    if show_dropdown:
+        suppliers = get_all_suppliers()
+        supplier_var = ft.Dropdown(
+            label="בחר ספק",
+            options=[ft.dropdown.Option(str(s["id"]), s["name"]) for s in suppliers],
+            width=300
+        )
+        content.append(ft.Row([supplier_var], spacing=20))
+    else:
+        supplier_var = None  # אם אין dropdown
     categories = [1, 2, 3, 4]
 
     for cat_id in categories:
@@ -49,7 +60,11 @@ def InventoryScreen(page, current_user, navigator, save_fn, supplier_id=0):
                             "size": size,
                             "count": int(tf.value)
                         })
+                supplier_id = int(supplier_var.value) if supplier_var else 0
+                print("I am save 1, 2")
+                print("items", items)
                 save_fn(items,supplier_id)
+                navigator.go_home(current_user)
 
             content.append(
                 ft.ElevatedButton("שמור", on_click=save_handler)
@@ -79,7 +94,11 @@ def InventoryScreen(page, current_user, navigator, save_fn, supplier_id=0):
                             "size": -1,
                             "count": int(tf.value)
                         })
+                supplier_id = int(supplier_var.value) if supplier_var else 0
+                print("I am save 3,4")
+                print("items", items)
                 save_fn(items,supplier_id)
+                navigator.go_home(current_user)
 
             content.append(
                 ft.ElevatedButton("שמור", on_click=save_handler)

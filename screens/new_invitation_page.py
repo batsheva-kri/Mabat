@@ -13,8 +13,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
     # יצירת עותק חדש אם ההזמנה קיימת אך לא פתוחה
     print("existing_invitation", existing_invitation)
+    if edit and existing_invitation and existing_invitation["status"]:
+        existing_invitation["status"] = "open"
     if existing_invitation and existing_invitation["status"] and existing_invitation["status"] != "open":
-        print("status", existing_invitation["status"])
         edit = False
     if existing_invitation and not is_new_invitation and edit:
         new_inv = existing_invitation.copy()
@@ -267,6 +268,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
 
         items.clear()
         items.extend(temp_items)
+        if not items and existing_invitation and existing_invitation.get("items"):
+            items.extend(existing_invitation["items"])
         return items
 
     def recompute_total():

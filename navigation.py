@@ -7,6 +7,7 @@ from screens.employees import EmployeeManagementScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
+from screens.inventory import InventoryScreen
 from screens.mune import InventoryMenuScreen
 from screens.new_customer_page import NewCustomerPage
 from screens.new_invitation_page import NewInvitationPage
@@ -69,3 +70,5 @@ class Navigator:
         SupplierReportsScreen(self.page, user,self)
     def do_supplier_catalog(self,user):
         SupplierCatalogScreen(self.page,user,self)
+    def go_inventory_screen(self, user,save_fn,show_dropdown = False):
+        InventoryScreen(self.page, user, self, save_fn,show_dropdown)

@@ -50,11 +50,17 @@ def MainInvitationScreen(page, navigator, current_user):
             await asyncio.sleep(0.1)  # דיליי קטן
             go_new_customer_click()
 
+        async def go_supply(e):
+            page.dialog.open = False
+            page.update()
+            await asyncio.sleep(0.1)
+            navigator.go_invitations_supply(current_user)
+
         dialog = ft.AlertDialog(
             title=ft.Text("בחר סוג לקוח"),
             content=ft.Column(
                 controls=[
-                    ft.ElevatedButton("הזמנה שהגיעה", on_click=lambda e: navigator.go_invitations_supply(current_user)),
+                    ft.ElevatedButton("הזמנה שהגיעה", on_click=lambda e: asyncio.run(go_supply(e))),
                     ft.ElevatedButton("לקוח קיים", on_click=lambda e: asyncio.run(select_existing(e))),
                     ft.ElevatedButton("לקוח חדש", on_click=lambda e: asyncio.run(select_new(e)))
                 ],

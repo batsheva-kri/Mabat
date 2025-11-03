@@ -27,6 +27,8 @@ def write(supplier_id,header:dict,items):
         product = item['product_name']  # כאן אפשר לשים לוגיקה למציאת "הכי דומה"
         if product == "אואזיס":
             product = "אואסיס בודד"
+        if product == "ביופיניטי":
+            product = "ביופיניטי חבילה"
         quantity = item['quantity']
         bc = header.get('curvature', "")
 
@@ -64,9 +66,7 @@ def write(supplier_id,header:dict,items):
 
     # לעבור על כל הפריטים ולכתוב ל-Sheet
     for item in items:
-        print(item)
         row = item_to_row(header, item)
-        print(row)
         sheet.append_row(row, value_input_option="USER_ENTERED")
 
 def write_supplier2_google_sheet(supplier_id, header: dict, items):

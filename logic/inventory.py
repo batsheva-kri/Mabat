@@ -86,33 +86,34 @@ def sizes_for_category(category_id):
     return sizes
 # --- שמירת מספר ערכים (dictionary) בבת אחת ---
 def save_existing_inventory(entries,stam=None):
-    for product_id, size, quantity in entries:
-        if quantity is None or str(quantity).strip() == "":
+    for entry in entries:
+        if entry["count"] is None or str(entry["count"]).strip() == "":
             continue
         try:
-            q = int(quantity)
+            q = int(entry["count"])
         except Exception:
             q = 0
-        if size == -1:
+        if entry["size"] == -1:
             required = run_query(
            "SELECT required_count FROM required_stock WHERE product_id = ?",
-           (product_id,),
+           (entry["product_id"],),
             fetchone=True
             )
+
         else:
             # --- בדיקה מול required_stock ---
             required = run_query(
                 "SELECT required_count FROM required_stock WHERE product_id = ? AND size = ?",
-                (product_id, str(size)),
+                (entry["product_id"], str(entry["size"])),
                 fetchone=True
             )
         if required:
-            missing = required["required_count"] - quantity
+            missing = required["required_count"] - entry["count"]
             if missing > 0:
                 # שולחים להזמנת ספק במצב ישיר
                 add_supplier_invitations(
-                    product_id=product_id,
-                    size=str(size),
+                    product_id=entry["product_id"],
+                    size=str(entry["size"]),
                     quantity=missing
                 )
 def process_inventory_input(entries):
