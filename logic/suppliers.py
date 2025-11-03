@@ -7,7 +7,7 @@ from logic.writing_in_google_sheet import write, write_supplier2_google_sheet
 
 def add_supplier(supplier):
     run_query(
-        "INSERT INTO suppliers (name, phone, email,googleSheetLink) VALUES (?, ?, ?)",
+        "INSERT INTO suppliers (name, phone, email,googleSheetLink) VALUES (?, ?, ?,?)",
         (supplier["name"], supplier.get("phone"), supplier.get("email"),supplier.get("link")),
         commit=True
     )
@@ -153,7 +153,6 @@ def mark_supplied(invitation_id, supplied):
             print(f"הזמנת ספק {invitation_id} פתוחה – סופק {total_supplied}/{quantity}")
     else:
         print(f"⚠️ לא נמצאה הזמנת ספק עם id={invitation_id}")
-
 def mark_invitations_as_closed(invitations):
     """
     מקבלת רשימת הזמנות (מהפונקציה get_open_supplier_invitations)
@@ -325,9 +324,10 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         run_query(query, params, commit=True)
 def get_open_orders(supplier_id=None):
     query = """
-    SELECT si.id, s.name as supplier_name, si.date_ as date,
-           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total
-    FROM supplier_invitations si
+    SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date,
+           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size
+           FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
+    JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
     JOIN suppliers s ON si.supplier_id = s.id
     JOIN products p ON si.product_id = p.id
     LEFT JOIN suppliers_catalog sc 
@@ -341,10 +341,11 @@ def get_open_orders(supplier_id=None):
     return run_query(query, params, fetchall=True)
 def get_closed_orders(supplier_id=None):
     query = """
-    SELECT si.id, s.name as supplier_name, si.date_ as date,
-           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,
+    SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name,
+           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
            si.supplied
-    FROM supplier_invitations si
+     FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
+    JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
     JOIN suppliers s ON si.supplier_id = s.id
     JOIN products p ON si.product_id = p.id
     LEFT JOIN suppliers_catalog sc 
@@ -362,27 +363,6 @@ def reopen_order(order_id):
     run_query("UPDATE supplier_invitations SET close = 0 WHERE id = ?", (order_id,), commit=True)
 def get_supplier_google_sheet_link(id):
     return run_query("SELECT googleSheetLink FROM suppliers WHERE id = ?",(id,), fetchall=True)
-# def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None):
-#     query = """
-#         SELECT id FROM supplier_invitations
-#         WHERE supplier_id = ?
-#           AND product_id = (SELECT id FROM products WHERE name = ?)
-#           AND close = 0
-#     """
-#     params = [supplier_id, product_name]
-#
-#     # בונים מחרוזת אחת שמכילה את כל הערכים
-#     if size or cylinder or angle:
-#         combined = " ".join(filter(None, [size, cylinder, angle]))
-#         query += " AND size = ?"
-#         params.append(combined)
-#
-#     query += " ORDER BY id LIMIT 1"
-#     print("query: ",query)
-#     print("params: ",params)
-#     inv = run_query(query, tuple(params), fetchall=True)
-#     print("inv", inv)
-#     return inv
 def get_supplier_invitation(supplier_id, product_name, size=None, cylinder=None, angle=None, color=None, multifocal=None, curvature=None):
     combined = " ".join(filter(None, [size, cylinder, angle])) if (size or cylinder or angle) else None
 

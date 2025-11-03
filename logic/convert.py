@@ -95,7 +95,7 @@ def customer_size_to_possible_arrived(customer_size_str):
             ang = int(float(parts[2]))
         except Exception:
             ang = None
-
+    print("base_size", base_size)
     # 1) המרת גודל לפי טווחים:
     adjusted = base_size
     if 4 < base_size < 6.25:
@@ -121,12 +121,13 @@ def customer_size_to_possible_arrived(customer_size_str):
     else:
         # אם adjusted <= 6, ניתן להחזיר את הערך כמו שהוא (כולל רבעים)
         size_options = [round(adjusted, 2)]
-
+    print("size_options: ",size_options)
     # 2) צילינדר: אם קטן מ-0.75 -> מתעלמים מצילינדר + זוית
     cyl_opt = _round_down_allowed_cylinder(cyl)  # נותן מחרוזת כמו '-1.25' או None
+    print("cyl_opt: ", cyl_opt)
     # 3) זויות:
     angle_opts = _angle_options_from(ang) if cyl_opt is not None else [None]
-
+    print("angle_opts", angle_opts)
     results = []
     for s in size_options:
         s_str = _fmt_number_trim(s)
@@ -147,6 +148,7 @@ def customer_size_to_possible_arrived(customer_size_str):
         if r not in seen:
             seen.add(r)
             ordered.append(r)
+    print("ordered", ordered)
     return ordered
 
 # ---------------- הפונקציה הראשית ----------------
@@ -181,42 +183,51 @@ def get_supplier_invitation(
     """
     params = [supplier_id, product_name]
     inv_list = run_query(query, tuple(params), fetchall=True)
-    # print("inv_list:", inv_list)
+    print("query",query)
+    print("params",params)
+    print("inv_list:", inv_list)
 
-    for inv in inv_list:
-        supplier_inv_id = inv['id']
-        product_id = inv['product_id']
+    product_id = inv_list[0]['product_id']
 
-        # נשלוף את ההזמנות של הלקוחות שיש להן אותו product_id
-        # נוסיף תנאים על color/multifocal/curvature רק אם הם הוזנו
-        cust_query = """
-            SELECT ci.id AS cust_inv_id, cii.id AS item_id, cii.size AS cust_size
-            FROM customer_invitations ci
-            JOIN customer_invitation_items cii ON ci.id = cii.invitation_id
-            WHERE cii.product_id = ?
-        """
-        cust_params = [product_id]
+    # נשלוף את ההזמנות של הלקוחות שיש להן אותו product_id
+    # נוסיף תנאים על color/multifocal/curvature רק אם הם הוזנו
+    cust_query = """
+        SELECT si.id AS supplier_inv_id , ci.id AS cust_inv_id, cii.id AS item_id, cii.size AS cust_size, prescription
+        FROM customer_invitations ci
+        JOIN customer_invitation_items cii ON ci.id = cii.invitation_id
+        JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
+        WHERE cii.product_id = ? AND cii.supplied < cii.quantity
+    """
+    cust_params = [product_id]
 
-        if color is not None and color != "":
-            cust_query += " AND ci.color = ?"
-            cust_params.append(color)
-        if multifocal is not None and multifocal != "":
-            cust_query += " AND ci.multifocal = ?"
-            cust_params.append(multifocal)
-        if curvature is not None and curvature != "":
-            cust_query += " AND ci.curvature = ?"
-            cust_params.append(curvature)
+    if color is not None and color != "":
+        cust_query += " AND ci.color = ?"
+        cust_params.append(color)
+    if multifocal is not None and multifocal != "":
+        cust_query += " AND ci.multifocal = ?"
+        cust_params.append(multifocal)
+    if curvature is not None and curvature != "":
+        cust_query += " AND ci.curvature = ?"
+        cust_params.append(curvature)
 
-        # ניתן למיין לפי עדיפויות אם יש צורך; כרגע פשוט נחדיר את כל התוצאות
-        cust_rows = run_query(cust_query, tuple(cust_params), fetchall=True)
-
-        # עבור כל שורת לקוח נחשב את המחרוזות האפשריות ונשווה ל-arrived_combined
-        for row in cust_rows:
-            cust_size_str = row.get("cust_size")
+    # ניתן למיין לפי עדיפויות אם יש צורך; כרגע פשוט נחדיר את כל התוצאות
+    cust_rows = run_query(cust_query, tuple(cust_params), fetchall=True)
+    print("cust_rows ",cust_rows)
+    # עבור כל שורת לקוח נחשב את המחרוזות האפשריות ונשווה ל-arrived_combined
+    for row in cust_rows:
+        cust_size_str = row.get("cust_size")
+        if row.get("prescription") == "עדשות":
+            possible_arrived = [cust_size_str]
+        else:
             possible_arrived = customer_size_to_possible_arrived(cust_size_str)
-            # אם המוצר שהגיע קיים ברשימת האפשרויות -> זו התאמה
-            if arrived_combined in possible_arrived:
-                return supplier_inv_id
+        # אם המוצר שהגיע קיים ברשימת האפשרויות -> זו התאמה
+        if arrived_combined in possible_arrived:
+            print("arrived_combined",arrived_combined)
+            print("possible_arrived", possible_arrived)
+            print("supplier_inv_id ",row["supplier_inv_id"])
+            print("item_id", row["item_id"])
+            print("cust_inv_id" ,row["cust_inv_id"])
+            return {"supplier_inv_id": row["supplier_inv_id"],"customer_invitation_item_id": row["item_id"],"cust_inv_id":row["cust_inv_id"]}
 
     # אם לא מצאנו התאמה בכל הזמנות הספק
     return None
