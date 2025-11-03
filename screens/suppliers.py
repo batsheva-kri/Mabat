@@ -1,16 +1,10 @@
 import flet as ft
 from logic.suppliers import get_all_suppliers, delete_supplier
-from screens.suppliers_forms import AddSupplierForm, EditSupplierForm, DeleteSupplierForm
-from screens.supplier_orders import OrdersView
-from screens.supplier_reports import SupplierReports
-from screens.supplier_catalog import SupplierCatalog
-
 
 def SuppliersScreen(page, user, navigator):
+    suppliers = get_all_suppliers()
     def update_table():
-        suppliers = get_all_suppliers()
         supplier_table.rows.clear()
-
         for i, sl in enumerate(suppliers):
             supplier_table.rows.append(
                 ft.DataRow(
@@ -19,14 +13,15 @@ def SuppliersScreen(page, user, navigator):
                         ft.DataCell(ft.Text(sl["name"])),
                         ft.DataCell(ft.Text(sl["phone"])),
                         ft.DataCell(ft.Text(sl["email"])),
+                        ft.DataCell(ft.Text(sl["googleSheetLink"])),
                         ft.DataCell(
                             ft.Row([
                                 ft.IconButton(icon="edit",
-                                              on_click=lambda e, s=sl: EditSupplierForm(page, supplier_data=s,
-                                                                                       on_save=update_table).open()),
+                                              on_click=lambda e, s=sl: navigator.go_edit_suppliers(user, supplier_data=s,
+                                                                                       on_save=update_table)),
                                 ft.IconButton(icon="delete",
-                                              on_click=lambda e, s=sl: DeleteSupplierForm(page, supplier_data=s,
-                                                                                         on_save=update_table).open())
+                                              on_click=lambda e, s=sl: navigator.go_delete_suppliers(user, supplier_data=s,
+                                                                                         on_save=update_table))
                             ])
                         ),
                     ],
@@ -54,10 +49,10 @@ def SuppliersScreen(page, user, navigator):
 
     # כפתורי פעולה עליונים
     buttons = [
-        ("➕ הוספת ספק", "#caffbf", lambda e: AddSupplierForm(page,on_save= update_table).open()),
-        ("📂 הזמנות ספקים", "#ffe5ec", lambda e: OrdersView(page,navigator).open()),
-        ("📊 דוחות ספקים", "#e0fbfc", lambda e: SupplierReports(page,user, navigator).open()),
-        ("💲 קטלוג ספקים", "#edf6f9", lambda e: SupplierCatalog(page,navigator,user=user).open()),
+        ("➕ הוספת ספק", "#caffbf", lambda e: navigator.go_add_supplier(user,on_save= update_table)),
+        ("📂 הזמנות ספקים", "#ffe5ec", lambda e: navigator.go_supplier_orders(user)),
+        ("📊 דוחות ספקים", "#e0fbfc", lambda e: navigator.go_supplier_report(user)),
+        ("💲 קטלוג ספקים", "#edf6f9", lambda e: navigator.do_supplier_catalog(user=user)),
     ]
 
     cards = []
@@ -95,7 +90,6 @@ def SuppliersScreen(page, user, navigator):
     )
 
     # --- טבלת ספקים ---
-    suppliers = get_all_suppliers()
 
     supplier_table = ft.DataTable(
         columns=[
@@ -103,6 +97,7 @@ def SuppliersScreen(page, user, navigator):
             ft.DataColumn(ft.Text("שם", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("טלפון", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("אימייל", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("לינק לגוגל שיט", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("פעולות", size=18, weight=ft.FontWeight.BOLD)),
         ],
         rows=[
@@ -112,10 +107,11 @@ def SuppliersScreen(page, user, navigator):
                     ft.DataCell(ft.Text(s["name"])),
                     ft.DataCell(ft.Text(s["phone"])),
                     ft.DataCell(ft.Text(s["email"])),
+                    ft.DataCell(ft.Text(s["googleSheetLink"])),
                     ft.DataCell(
                         ft.Row([
-                            ft.IconButton(icon="edit", on_click=lambda e, s=s: EditSupplierForm(page,navigator,
-                                                                                                supplier_data=s,on_save=update_table).open()),
+                            ft.IconButton(icon="edit", on_click=lambda e, s=s: navigator.go_edit_suppliers(user,supplier_data=s,
+                                                                                                           on_save=update_table)),
                             ft.IconButton(icon="delete", on_click=lambda e, s=s: delete_supplier_direct(s["id"]))
                         ])
                     ),

@@ -93,7 +93,7 @@ def add_customer(name: str, phone: str, email: str = None, notes: str = None) ->
         row = run_query("SELECT last_insert_rowid() AS id", (), fetchone=True)
         return row["id"] if isinstance(row, dict) else row[0]
 def get_customer_by_id(customer_id):
-    print(customer_id)
+    print("customer_id",customer_id)
     return run_query("SELECT * FROM customers WHERE id = ?", (customer_id,), fetchall=True)
 def get_customer_name_by_id(id):
     return run_query("SELECT name FROM customers WHERE id = ?",(id,),fetchone=True)
