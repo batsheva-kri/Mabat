@@ -22,7 +22,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
         new_inv["date"] = datetime.datetime.now().isoformat()
         if existing_invitation.get("status") != "open":
-            print("I do this")
             new_inv.pop("id", None)
             new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
             new_inv["date"] = datetime.datetime.now().isoformat()
@@ -161,13 +160,18 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                 delivery_sent=int(shipped_checkbox.value),
                 collected = int(collected_checkbox.value)
             )
-
+            existing_invitation["answered"] = int(answered_checkbox.value)
+            existing_invitation["want_shipping"] = int(want_shipping_checkbox.value)
+            existing_invitation["shipped"] = int(shipped_checkbox.value)
+            existing_invitation["collected"] = int(collected_checkbox.value)
         delivery_details_container.visible = want_shipping_checkbox.value
         shipped_checkbox.visible = want_shipping_checkbox.value
 
         page.update()
-
-    answered_checkbox.on_change = on_checkbox_change
+    def on_answer_checkbox_change(e):
+        existing_invitation["answering_date"] = datetime.datetime.now().isoformat()
+        on_checkbox_change(e)
+    answered_checkbox.on_change = on_answer_checkbox_change
     want_shipping_checkbox.on_change = on_checkbox_change
     shipped_checkbox.on_change = on_checkbox_change
     collected_checkbox.on_change = on_checkbox_change
@@ -218,7 +222,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
     items = []
     total_var = ft.Text(f"סה\"כ: 0.00")
     discount_var = ft.TextField(label="הנחה", width=100, value=str(existing_invitation.get("discount", 0) if existing_invitation else "0"))
-
+    discount_var.on_change = lambda e: recompute_total()
     items_list = ft.DataTable(columns=[
         ft.DataColumn(ft.Text("תיאור")),
         ft.DataColumn(ft.Text("שם מוצר")),

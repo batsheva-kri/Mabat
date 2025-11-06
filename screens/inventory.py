@@ -107,11 +107,8 @@ def InventoryScreen(page, current_user, navigator, save_fn, show_dropdown=False)
     # כפתור חזרה
     back_button = ft.ElevatedButton(
         "⬅ חזרה",
-        on_click=lambda e: navigator.go_inventory(
-            user=current_user,
-            save_arrived=save_fn,
-            save_existing=save_fn
-        )
+        on_click=lambda e: navigator.go_orders(
+            user=current_user)
     )
     content.append(back_button)
 

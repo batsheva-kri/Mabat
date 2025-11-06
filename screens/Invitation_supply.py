@@ -1,8 +1,7 @@
 import flet as ft
 from logic.inventory import get_all_products
 from logic.products import get_product_name_by_id
-from logic.suppliers import get_all_suppliers \
-# , get_supplier_invitation
+from logic.suppliers import get_all_suppliers
 from logic.convert import get_supplier_invitation
 from logic.orders import get_order_by_id, get_invitation_items_by_invitation_id
 from logic.supply_flow import handle_supplied_item
@@ -264,7 +263,7 @@ def Invitation_supply(navigator, page, current_user):
             items_list,
             ft.Text("המוצרים המתאימים מהזמנות הלקוחות הרלוונטיות", weight=ft.FontWeight.BOLD),
             over_supplied_table,
-            ft.ElevatedButton("סיום והחזרה", on_click=lambda e: navigator.go_home(current_user))
+            ft.ElevatedButton("סיום והחזרה", on_click=lambda e: navigator.go_orders(current_user))
         ], spacing=15)
     )
     page.update()
