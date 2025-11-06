@@ -1,15 +1,12 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-
 from logic.products import get_id_by_product_name, get_vista_name
-
 # הגדרת ההרשאות
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
-
 creds = ServiceAccountCredentials.from_json_keyfile_name(
     "alien-drake-445721-e9-e11ed308249c.json", scope
 )
@@ -54,33 +51,8 @@ def write(supplier_id,header:dict,items):
         prescription = "עדשות מגע" if header['prescription'] == "עדשות" else "משקפיים"
         status = "צריך להזמין"
         if notes != "":
-            return [
-                name,
-                order_date,
-                product,
-                quantity,
-                bc,
-                number,
-                cylinder,
-                degrees,
-                color_or_multifokal,
-                prescription,
-                status,
-                notes
-            ]
-        return [
-            name,
-            order_date,
-            product,
-            quantity,
-            bc,
-            number,
-            cylinder,
-            degrees,
-            color_or_multifokal,
-            prescription,
-            status
-        ]
+            return [name, order_date, product, quantity, bc, number, cylinder, degrees, color_or_multifokal, prescription, status, notes ]
+        return [name, order_date, product, quantity, bc, number, cylinder, degrees, color_or_multifokal, prescription, status]
 
 
     # לעבור על כל הפריטים ולכתוב ל-Sheet
@@ -112,18 +84,7 @@ def write_supplier2_google_sheet(supplier_id, header: dict, items):
         # הערות – אפשר למלא כאן מה שנוח לך
         notes = ""
 
-        return [
-            order_date,  # תאריך
-            product,  # שם המוצר
-            number,  # מידה
-            cylinder,  # צילינדר
-            degrees,  # מעלות
-            quantity,  # כמות
-            notes,  # הערות
-            "",  # עמודה ריקה 1
-            "",
-            name
-        ]
+        return [  order_date, product, number, cylinder, degrees, quantity, notes, "", "", name ]
 
     for item in items:
         row = item_to_row_supplier2(header, item)

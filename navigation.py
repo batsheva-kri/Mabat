@@ -8,7 +8,6 @@ from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
 from screens.inventory import InventoryScreen
-from screens.mune import InventoryMenuScreen
 from screens.new_customer_page import NewCustomerPage
 from screens.new_invitation_page import NewInvitationPage
 from screens.supplier_catalog import SupplierCatalogScreen
@@ -37,8 +36,6 @@ class Navigator:
         SuppliersScreen(self.page, user,self)
     def go_orders(self,user,e=None):
         MainInvitationScreen(self.page, self, current_user=user)
-    def go_inventory(self,user,save_arrived,save_existing):
-        InventoryMenuScreen(self.page,user,self,save_arrived,save_existing)
     def go_new_customer(self,user):
         NewCustomerPage(self.page, user, self)
     def go_customer(self,user):
