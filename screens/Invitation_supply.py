@@ -1,13 +1,14 @@
 import flet as ft
 from logic.inventory import get_all_products
 from logic.products import get_product_name_by_id
-from logic.suppliers import get_all_suppliers, get_supplier_invitation
-# from logic.convert import get_supplier_invitation
+from logic.suppliers import get_all_suppliers
+from logic.convert import get_supplier_invitation
 from logic.orders import get_order_by_id, get_invitation_items_by_invitation_id
 from logic.supply_flow import handle_supplied_item
 
 def Invitation_supply(navigator, page, current_user):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
+    page.snack_bar.open = False
     over_supplied_table = ft.DataTable(columns=[
         ft.DataColumn(ft.Text("מוצר")),
         ft.DataColumn(ft.Text("מידה")),
@@ -40,7 +41,7 @@ def Invitation_supply(navigator, page, current_user):
                 "פתח הזמנה",
                 on_click=lambda e, inv_id=item_data["customer_invitation_id"]: navigator.go_new_invitation(
                     current_user, get_order_by_id(inv_id)["customer_id"],
-                    existing_invitation=customer_invitation
+                    existing_invitation=customer_invitation,edit=False
                 )
             )
         else:
@@ -111,20 +112,12 @@ def Invitation_supply(navigator, page, current_user):
 
         def update_suggestions(query: str):
             suggestions_list.controls.clear()
-            print("------ UPDATE SUGGESTIONS ------")
-            print("Type selected:", type_dropdown.value)
-            print("Query:", query)
 
             if query:
-                print(type_dropdown.value)
                 if type_dropdown.value == "lens":
                     matches = [p["name"] for p in lens_products if query.lower() in p["name"].lower()]
-                    print("lens")
                 else:
                     matches = [p["name"] for p in solution_products if query.lower() in p["name"].lower()]
-                    print("solution")
-
-                print("Matches found:", matches)
 
                 for match_name in matches:
                     btn = ft.TextButton(
@@ -178,8 +171,7 @@ def Invitation_supply(navigator, page, current_user):
             multifocal = multifocal_var.value
             curvature = curvature_var.value
             color = color_var.value
-
-            supplier_invs = get_supplier_invitation(
+            invitation_details= get_supplier_invitation(
                 supplier_id,
                 product_name,
                 size,
@@ -189,73 +181,35 @@ def Invitation_supply(navigator, page, current_user):
                 multifocal=multifocal if multifocal else None,
                 curvature=curvature if curvature else None
             )
-
-            # if supplier_invs:
-            #     invitation_id = supplier_invs[0]["id"]
-            #     result = handle_supplied_item(invitation_id, quantity)
-            #     if result:
-            #         add_to_over_supplied(result)
-            #     customer_invitation_id = handle_supplied_item(invitation_id, quantity)
-            #     customer_invitation = get_order_by_id(customer_invitation_id)
-            #     items1 = get_invitation_items_by_invitation_id(customer_invitation_id)
-            #     # המרה לרשימה אם זה מילון בודד
-            #     if isinstance(items1, dict):
-            #         # items1 = [items1]
-            #         customer_invitation["items"] = [items1]
-            #     else:
-            #         customer_invitation["items"] = items1
-            #     for inv_item in customer_invitation["items"]:
-            #         product_id = inv_item["product_id"]
-            #         inv_item["product_name"] = get_product_name_by_id(product_id)
-            #
-            #     navigator.go_new_invitation(current_user,customer_invitation["customer_id"],is_new_invitation=True,existing_invitation=customer_invitation, edit = False)
-            # else:
-            #     print(f"לא נמצאה הזמנת ספק מתאימה עבור {product_name}")
-
-
-
-            # if supplier_invs:
-            #     invitation_id = supplier_invs[0]["id"]
-            #     result = handle_supplied_item(invitation_id, quantity)
-            #
-            #     if isinstance(result, dict):  # יש עודפים
-            #         add_to_over_supplied(result)
-            #         print("נמצאו עודפים — לא נפתח הזמנה נוספת")
-            #     else:
-            #         # אין עודפים → לפתוח את ההזמנה הרלוונטית
-            #         customer_invitation = get_order_by_id(result)
-            #         items1 = get_invitation_items_by_invitation_id(result)
-            #         customer_invitation["items"] = [items1] if isinstance(items1, dict) else items1
-            #         for inv_item in customer_invitation["items"]:
-            #             product_id = inv_item["product_id"]
-            #             inv_item["product_name"] = get_product_name_by_id(product_id)
-            #         navigator.go_new_invitation(
-            #             current_user,
-            #             customer_invitation["customer_id"],
-            #             is_new_invitation=True,
-            #             existing_invitation=customer_invitation,
-            #             edit=False
-            #         )
-            # else:
-            #     print(f"לא נמצאה הזמנת ספק מתאימה עבור {product_name}")
-            #
-
-            if supplier_invs:
+            if invitation_details is not None:
+                supplier_invs = invitation_details["supplier_inv_id"]
+                customer_invitation_item_id = invitation_details["customer_invitation_item_id"]
                 invitation_id = supplier_invs
-                result = handle_supplied_item(invitation_id, quantity)
+                results,leftover = handle_supplied_item(invitation_id,
+                                            quantity,
+                                            customer_invitation_item_id,
+                                            supplier_id,
+                                            product_name,
+                                            size,
+                                            cylinder,
+                                            angle,
+                                            color = color if color else None,
+                                            multifocal = multifocal if multifocal else None,
+                                            curvature = curvature if curvature else None
+                                            )
 
                 # טיפול במספר תוצאות (עודפים והזמנות שסופקו)
-                if isinstance(result, list):  # יש עודפים או כמה הזמנות
-                    for res in result:
+                if isinstance(results, list):  # יש עודפים או כמה הזמנות
+                    for res in results:
                         add_to_over_supplied(res)
                     print("נמצאו עודפים — לא נפתח הזמנה נוספת")
-                elif isinstance(result, dict):  # מקרה מיותר בודד
-                    add_to_over_supplied(result)
+                elif isinstance(results, dict):  # מקרה מיותר בודד
+                    add_to_over_supplied(results)
                     print("נמצא עודף — לא נפתח הזמנה נוספת")
                 else:
                     # אין עודפים → לפתוח את ההזמנה הרלוונטית
-                    customer_invitation = get_order_by_id(result)
-                    items1 = get_invitation_items_by_invitation_id(result)
+                    customer_invitation = get_order_by_id(results)
+                    items1 = get_invitation_items_by_invitation_id(results)
                     customer_invitation["items"] = [items1] if isinstance(items1, dict) else items1
                     for inv_item in customer_invitation["items"]:
                         product_id = inv_item["product_id"]
@@ -263,7 +217,6 @@ def Invitation_supply(navigator, page, current_user):
                     navigator.go_new_invitation(
                         current_user,
                         customer_invitation["customer_id"],
-                        is_new_invitation=True,
                         existing_invitation=customer_invitation,
                         edit=False
                     )
@@ -306,9 +259,11 @@ def Invitation_supply(navigator, page, current_user):
             supplier_dropdown,
             products_column,
             add_product_btn,
+            ft.Text("המוצרים שסופקו", weight=ft.FontWeight.BOLD),
             items_list,
+            ft.Text("המוצרים המתאימים מהזמנות הלקוחות הרלוונטיות", weight=ft.FontWeight.BOLD),
             over_supplied_table,
-            ft.ElevatedButton("סיום והחזרה", on_click=lambda e: navigator.go_home(current_user))
+            ft.ElevatedButton("סיום והחזרה", on_click=lambda e: navigator.go_orders(current_user))
         ], spacing=15)
     )
     page.update()

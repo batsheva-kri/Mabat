@@ -137,6 +137,7 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
             </td>
             <td style="text-align:left;">
                 <div class="status-label">{checkbox_html(existing_invitation.get('answered',0))} ענו</div>
+               <div>בתאריך: {existing_invitation.get('answering_date', '').split('T')[0] if existing_invitation.get('answering_date') else '___________'}</div>
                 <div class="status-label">{checkbox_html(existing_invitation.get('want_shipping',0))} משלוח</div>
                 {f'<div class="status-label">{checkbox_html(existing_invitation.get("shipped",0))} נשלח</div>' if existing_invitation.get('want_shipping',0) else ''}
             </td>

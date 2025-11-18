@@ -62,3 +62,34 @@ def get_catalog_prices(product_id, amount):
 def get_product_name_by_id(product_id):
     name = run_query("SELECT name FROM products WHERE id = ?",(product_id,),fetchone=True)
     return name["name"]
+def get_id_by_product_name(product_name):
+    return run_query("SELECT id FROM products WHERE name = ?",(product_name,),fetchone=True)
+def get_vista_name(product_id, total_units):
+
+    p_id = product_id["id"]
+    # שולף מהטבלה את כל סוגי הקופסאות והשם המתאים
+    packages = run_query("""
+        SELECT package_name, units_per_box 
+        FROM name_products_to_vista
+        WHERE product_code = ? 
+        ORDER BY units_per_box DESC
+    """, (p_id,),fetchall=True)
+    if not packages:
+        return None
+    name = packages[0]["package_name"].split()[0] if packages[0]["package_name"] else ""
+    if len(packages) < 1:
+        return {"name": f"{name}בודד ", "count": total_units}
+    # נבדוק אם אפשר לחלק בדיוק
+    fits_exactly = any(total_units % p["units_per_box"] == 0 for p in packages)
+
+    # אם לא מתחלק בדיוק - נחשב הכל כבודדים
+    if not fits_exactly:
+        return {"name": f"{name} בודד", "count": total_units}
+
+    # נבדוק אם הכמות מתחלקת בצורה מדויקת לאחת מהקופסאות
+    for pkg in packages:
+        box_size = pkg["units_per_box"]
+        if total_units % box_size == 0:
+            num_boxes = total_units // box_size
+            return {"name": pkg["package_name"], "count": num_boxes}
+

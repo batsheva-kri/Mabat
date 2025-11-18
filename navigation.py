@@ -7,12 +7,21 @@ from screens.employees import EmployeeManagementScreen
 from screens.login import LoginScreen
 from screens.home import HomeScreen
 from screens.mainInventory import MainInvitationScreen
-from screens.mune import InventoryMenuScreen
+from screens.inventory import InventoryScreen
 from screens.new_customer_page import NewCustomerPage
 from screens.new_invitation_page import NewInvitationPage
+from screens.supplier_catalog import SupplierCatalogScreen
+from screens.supplier_orders import OrdersScreen
+from screens.supplier_reports import SupplierReportsScreen
 from screens.suppliers import SuppliersScreen
 from screens.catalog import CatalogScreen
+
 from screens.debts import DebtsScreen
+
+from screens.suppliers_forms import EditSupplierScreen, DeleteSupplierScreen, AddSupplierScreen
+
+
+
 class Navigator:
     def __init__(self, page):
         self.page = page
@@ -31,8 +40,6 @@ class Navigator:
         SuppliersScreen(self.page, user,self)
     def go_orders(self,user,e=None):
         MainInvitationScreen(self.page, self, current_user=user)
-    def go_inventory(self,user,save_arrived,save_existing):
-        InventoryMenuScreen(self.page,user,self,save_arrived,save_existing)
     def go_new_customer(self,user):
         NewCustomerPage(self.page, user, self)
     def go_customer(self,user):
@@ -52,5 +59,21 @@ class Navigator:
         NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
     def go_invitations_supply(self,user):
         Invitation_supply(self, self.page, user)
+
     def go_debts(self, user):
         DebtsScreen(self.page, self, user)
+
+    def go_supplier_orders(self,user):
+        OrdersScreen(self.page,self,user)
+    def go_add_supplier(self,user,on_save):
+        AddSupplierScreen(self.page, self,user, on_save)
+    def go_edit_suppliers(self,user,supplier_data,on_save):
+        EditSupplierScreen(self.page, self, user,supplier_data,on_save)
+    def go_delete_suppliers(self,user, supplier_data, on_save):
+        DeleteSupplierScreen(self.page, self, user, supplier_data, on_save)
+    def go_supplier_report(self,user):
+        SupplierReportsScreen(self.page, user,self)
+    def do_supplier_catalog(self,user):
+        SupplierCatalogScreen(self.page,user,self)
+    def go_inventory_screen(self, user,save_fn,show_dropdown = False):
+        InventoryScreen(self.page, user, self, save_fn,show_dropdown)

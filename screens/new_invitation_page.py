@@ -2,8 +2,8 @@ import flet as ft
 from logic.customers import get_customer_by_id
 from logic.inventory import get_all_products
 from logic.orders import add_invitation_items, update_invitation, clear_invitation_items, \
-    new_invitation, update_invitation_status
-from logic.products import get_catalog_prices
+    new_invitation, update_invitation_status, get_order_by_id, get_invitation_items_by_invitation_id
+from logic.products import get_catalog_prices, get_product_name_by_id
 from logic.suppliers import get_all_suppliers, create_supplier_invitations
 from logic.users import get_all_users
 import datetime
@@ -12,12 +12,16 @@ from temprint import generate_invoice_pdf
 def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitation, edit, existing_invitation=None):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
     # יצירת עותק חדש אם ההזמנה קיימת אך לא פתוחה
+    print("existing_invitation", existing_invitation)
+    if edit and existing_invitation and existing_invitation["status"]:
+        existing_invitation["status"] = "open"
+    if existing_invitation and existing_invitation["status"] and existing_invitation["status"] != "open":
+        edit = False
     if existing_invitation and not is_new_invitation and edit:
         new_inv = existing_invitation.copy()
         new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
         new_inv["date"] = datetime.datetime.now().isoformat()
         if existing_invitation.get("status") != "open":
-            print("I do this")
             new_inv.pop("id", None)
             new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
             new_inv["date"] = datetime.datetime.now().isoformat()
@@ -33,11 +37,13 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
     products_by_name = {p["name"]: p for p in products}
     product_names = list(products_by_name.keys())
     users = get_all_users()
-    customer = get_customer_by_id(customer_id)
+    if existing_invitation:
+        customer = get_customer_by_id(existing_invitation["customer_id"])
+    else:
+        customer = get_customer_by_id(customer_id)
     customer_name = customer[0]["name"]
     customer_phone = customer[0]["phone"]
     invitation_status = existing_invitation.get("status") if existing_invitation else "open"
-    print(invitation_status)
     is_editable_items = (invitation_status == "open")
     is_editable_checkboxes = (invitation_status == "in_shop")
     if existing_invitation and existing_invitation.get("items"):
@@ -47,6 +53,55 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                 prices = get_catalog_prices(product["id"], it.get("quantity", 1))
                 it["unit_price"] = float(prices["unit_prices"]["price"])
                 it["line_total"] = float(prices["total"])
+
+    def refresh_page_with_new_invitation(new_inv):
+        """טוען מחדש את הדף עם ההזמנה החדשה"""
+        page.controls.clear()
+        # קוראים שוב לפונקציה הראשית עם ההזמנה החדשה
+        NewInvitationPage(
+            navigator=navigator,
+            page=page,
+            current_user=current_user,
+            customer_id=new_inv["customer_id"],
+            is_new_invitation=False,
+            edit=True,
+            existing_invitation=new_inv
+        )
+        page.update()
+
+    def go_previous_order(e):
+        if not existing_invitation or "id" not in existing_invitation:
+            return
+        prev_id = existing_invitation["id"] - 1
+        prev_inv = get_order_by_id(prev_id)
+        if not prev_inv:
+            page.snack_bar = ft.SnackBar(ft.Text(f"אין הזמנה עם ID {prev_id}"), bgcolor=ft.Colors.RED)
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # שליפת פריטים להזמנה החדשה
+        items = get_invitation_items_by_invitation_id(prev_id)
+        for item in items:
+            item["product_name"] = get_product_name_by_id(item["product_id"])
+        prev_inv["items"] = items
+        refresh_page_with_new_invitation(prev_inv)
+
+    def go_next_order(e):
+        if not existing_invitation or "id" not in existing_invitation:
+            return
+        next_id = existing_invitation["id"] + 1
+        next_inv = get_order_by_id(next_id)
+        if not next_inv:
+            page.snack_bar = ft.SnackBar(ft.Text(f"אין הזמנה עם ID {next_id}"), bgcolor=ft.Colors.RED)
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # שליפת פריטים להזמנה החדשה
+        items = get_invitation_items_by_invitation_id(next_id)
+        next_inv["items"] = items
+        refresh_page_with_new_invitation(next_inv)
 
     # צ'קבוקסים
     answered_checkbox = ft.Checkbox(
@@ -105,13 +160,18 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                 delivery_sent=int(shipped_checkbox.value),
                 collected = int(collected_checkbox.value)
             )
-
+            existing_invitation["answered"] = int(answered_checkbox.value)
+            existing_invitation["want_shipping"] = int(want_shipping_checkbox.value)
+            existing_invitation["shipped"] = int(shipped_checkbox.value)
+            existing_invitation["collected"] = int(collected_checkbox.value)
         delivery_details_container.visible = want_shipping_checkbox.value
         shipped_checkbox.visible = want_shipping_checkbox.value
 
         page.update()
-
-    answered_checkbox.on_change = on_checkbox_change
+    def on_answer_checkbox_change(e):
+        existing_invitation["answering_date"] = datetime.datetime.now().isoformat()
+        on_checkbox_change(e)
+    answered_checkbox.on_change = on_answer_checkbox_change
     want_shipping_checkbox.on_change = on_checkbox_change
     shipped_checkbox.on_change = on_checkbox_change
     collected_checkbox.on_change = on_checkbox_change
@@ -162,7 +222,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
     items = []
     total_var = ft.Text(f"סה\"כ: 0.00")
     discount_var = ft.TextField(label="הנחה", width=100, value=str(existing_invitation.get("discount", 0) if existing_invitation else "0"))
-
+    discount_var.on_change = lambda e: recompute_total()
     items_list = ft.DataTable(columns=[
         ft.DataColumn(ft.Text("תיאור")),
         ft.DataColumn(ft.Text("שם מוצר")),
@@ -212,6 +272,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
 
         items.clear()
         items.extend(temp_items)
+        if not items and existing_invitation and existing_invitation.get("items"):
+            items.extend(existing_invitation["items"])
         return items
 
     def recompute_total():
@@ -506,40 +568,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         page.update()
         navigator.go_home(current_user)
 
-    # def print_invitation():
-    #     if not existing_invitation:
-    #         page.snack_bar = ft.SnackBar(ft.Text("אין הזמנה להדפסה!"))
-    #         page.snack_bar.open = True
-    #         page.update()
-    #         return
-    #     delivery_data = {}
-    #     if want_shipping_checkbox.value:
-    #         delivery_data = {
-    #             "name": delivery_form.controls[1].controls[0].value,  # שם מקבל
-    #             "address": delivery_form.controls[1].controls[1].value,
-    #             "phone1": delivery_form.controls[2].controls[0].value,
-    #             "phone2": delivery_form.controls[2].controls[1].value,
-    #             "notes": delivery_form.controls[3].value,
-    #             "paid": 1 if delivery_form.controls[4].controls[0].value else 0,
-    #             "home_delivery": 1 if delivery_form.controls[4].controls[1].value else 0,
-    #             "delivery_date": delivery_form.controls[4].controls[2].value
-    #         }
-    #     print("to print", existing_invitation)
-    #
-    #     pdf_file = generate_invoice_pdf(
-    #         customer_name=customer_name,
-    #         customer_phone=customer_phone,
-    #         total_discount=float(discount_var.value or 0),
-    #         existing_invitation=existing_invitation,
-    #         output_file=f"{existing_invitation['id']}.pdf",
-    #         created_by_user_name=current_user["user_name"],
-    #         delivery_data=delivery_data
-    #     )
-    #
-    #     page.snack_bar = ft.SnackBar(ft.Text(f"PDF נוצר בהצלחה בשם {pdf_file}"), bgcolor=ft.Colors.GREEN)
-    #     page.snack_bar.open = True
-    #     page.update()
-    #     navigator.go_home(current_user)
     def print_invitation():
         if not existing_invitation:
             page.snack_bar = ft.SnackBar(ft.Text("אין הזמנה להדפסה!"))
@@ -610,6 +638,14 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         page.update()
         navigator.go_home(current_user)
     saved_datetime_text = None
+
+    def format_datetime(date_str):
+        try:
+            dt = datetime.datetime.fromisoformat(date_str)
+            return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
+        except Exception as e:
+            print("Error parsing date:", e)
+            return date_str, ""
     if existing_invitation and existing_invitation.get("date"):
         try:
             saved_dt = datetime.datetime.fromisoformat(existing_invitation["date"])
@@ -621,6 +657,11 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         except Exception as e:
             print("Error parsing date:", e)
     print("exs",existing_invitation)
+    if existing_invitation:
+        date = existing_invitation.get("date") or existing_invitation.get("date_")
+        order_date, order_time = format_datetime(date)
+    else:
+        order_date, order_time = format_datetime(datetime.datetime.now().isoformat())
     # בסיום - כותרת, שדות הצ'קבוקסים והעמודה
     page.controls.clear()
     page.add(
@@ -630,10 +671,14 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                     ft.Row([
                         ft.Text(f"{customer_name}", size=20, weight=ft.FontWeight.BOLD),
                         ft.Text(f"📞 {customer_phone}", size=18, color=ft.Colors.BLUE),
+                        ft.Text(f"תאריך: {order_date} ", size=20,color=ft.Colors.GREEN),
+                        ft.Text(f" שעה: {order_time} ", size=20, color=ft.Colors.GREEN),
                     ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
                 ], alignment=ft.CrossAxisAlignment.END),
+                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_previous_order, tooltip="הזמנה קודמת"),
                 ft.Text("הזמנה חדשה" if not existing_invitation else f"הזמנה: {existing_invitation.get('id', '')}",
                         size=22, weight=ft.FontWeight.BOLD),
+                ft.IconButton(icon=ft.Icons.ARROW_FORWARD, on_click=go_next_order, tooltip="הזמנה הבאה"),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Row([answered_checkbox, collected_checkbox, want_shipping_checkbox, shipped_checkbox], spacing=20),
             delivery_details_container,

@@ -1,3 +1,5 @@
+import datetime
+
 from logic.utils import run_query
 from logic.writing_in_google_sheet import write
 
@@ -145,7 +147,9 @@ def update_invitation_status(invitation_id: int, call=None, delivery_requested=N
 
     if call is not None:
         updates.append("call = ?")
+        updates.append("answering_date = ?")
         params.append(call)
+        params.append(datetime.datetime.now().isoformat())
     if delivery_requested is not None:
         updates.append("delivery_requested = ?")
         params.append(delivery_requested)
@@ -167,7 +171,6 @@ def update_invitation_status(invitation_id: int, call=None, delivery_requested=N
 
     run_query(query, tuple(params), commit=True)
     return True
-
 def clear_invitation_items(invitation_id: int):
     """
     מוחק את כל הפריטים הקשורים להזמנה מהטבלה customer_invitation_items אם ההזמנה קיימת
