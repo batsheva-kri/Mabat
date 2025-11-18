@@ -12,7 +12,7 @@ from screens.new_customer_page import NewCustomerPage
 from screens.new_invitation_page import NewInvitationPage
 from screens.suppliers import SuppliersScreen
 from screens.catalog import CatalogScreen
-
+from screens.debts import DebtsScreen
 class Navigator:
     def __init__(self, page):
         self.page = page
@@ -52,3 +52,5 @@ class Navigator:
         NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
     def go_invitations_supply(self,user):
         Invitation_supply(self, self.page, user)
+    def go_debts(self, user):
+        DebtsScreen(self.page, self, user)
