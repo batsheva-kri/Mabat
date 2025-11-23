@@ -29,7 +29,9 @@ def handle_supplied_item(invitation_id,
     # --- שלב 1: סימון ההזמנה כסופקה ---
     mark_supplied(invitation_id, quantity)
     p_id = get_id_by_product_name(product_name)
-    add_to_supplier_report(supplier_id, [{"id":p_id,"count":quantity}])
+    print("supplier_id =", supplier_id, type(supplier_id))
+    print("p_id =", p_id, type(p_id))
+    add_to_supplier_report(supplier_id, [{"id": p_id["id"], "count": quantity}])
     # --- שלב 2: שליפת הנתונים ---
     supplier_inv = run_query(
         "SELECT product_id, customer_invitation_id, size FROM supplier_invitations WHERE id = ?",

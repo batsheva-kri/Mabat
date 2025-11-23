@@ -106,7 +106,7 @@ def Invitation_supply(navigator, page, current_user):
         cylinder_var = ft.TextField(label="צילנדר", width=80)
         angle_var = ft.TextField(label="זווית", width=80)
         color_var = ft.TextField(label="צבע", width=80)
-        multifocal_var = ft.TextField(label="מולטיפוקל", width=80)
+        multifocal_var = ft.TextField(label="מולטיפוקל", width=110)
         curvature_var = ft.TextField(label="קימור", width=80)
         suggestions_list = ft.Column()
 

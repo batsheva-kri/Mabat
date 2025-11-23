@@ -61,9 +61,7 @@ def InventoryScreen(page, current_user, navigator, save_fn, show_dropdown=False)
                             "count": int(tf.value)
                         })
                 supplier_id = int(supplier_var.value) if supplier_var else 0
-                print("I am save 1, 2")
-                print("items", items)
-                save_fn(items,supplier_id)
+                save_fn(items,supplier_id,page)
                 navigator.go_home(current_user)
 
             content.append(

@@ -35,7 +35,7 @@ def HomeScreen(page, user, navigator):
     base_buttons = [("מחירון", "#ffddd2"), ("המרת מספרים", "#ffe5ec"),
                     ("מחשבון", "#e0fbfc"), ("מסמכים", "#edf6f9"), ("הזמנות", "#fefae0")]
     if is_manager:
-        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("מעקב משלוחים", "#ffd6a5")]
+        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("מעקב משלוחים", "#ffd6a5"), ("חשבון שנתי", "#d0f4de")]
 
     cards = []
     for label, color in base_buttons:
@@ -57,6 +57,8 @@ def HomeScreen(page, user, navigator):
                     navigator.go_suppliers(user)
                 elif lbl == "מעקב משלוחים":
                     navigator.go_deliveries(user)
+                elif lbl == "חשבון שנתי":
+                    navigator.go_yearly_report(user)
             return handler
 
 

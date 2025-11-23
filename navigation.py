@@ -16,6 +16,7 @@ from screens.supplier_reports import SupplierReportsScreen
 from screens.suppliers import SuppliersScreen
 from screens.catalog import CatalogScreen
 from screens.suppliers_forms import EditSupplierScreen, DeleteSupplierScreen, AddSupplierScreen
+from screens.yearlyReport import YearlyReportScreen
 
 
 class Navigator:
@@ -69,3 +70,5 @@ class Navigator:
         SupplierCatalogScreen(self.page,user,self)
     def go_inventory_screen(self, user,save_fn,show_dropdown = False):
         InventoryScreen(self.page, user, self, save_fn,show_dropdown)
+    def go_yearly_report(self, user):
+        YearlyReportScreen(self.page, user, self)

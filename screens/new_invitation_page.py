@@ -48,6 +48,26 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
     is_editable_checkboxes = (invitation_status == "in_shop")
     if existing_invitation and existing_invitation.get("items"):
         for it in existing_invitation["items"]:
+            raw_size = it.get("size", "")
+
+            sphere = ""
+            cylinder = ""
+            axis = ""
+
+            if isinstance(raw_size, str) and raw_size:
+                parts = raw_size.split()
+                if len(parts) >= 1:
+                    sphere = parts[0]
+                if len(parts) >= 2:
+                    cylinder = parts[1]
+                if len(parts) >= 3:
+                    axis = parts[2]
+
+            # שמירה בתוך הפריט:
+            it["size"] = sphere
+            it["cyl"] = cylinder
+            it["ax"] = axis
+
             product = products_by_name.get(it["product_name"])
             if product:
                 prices = get_catalog_prices(product["id"], it.get("quantity", 1))
@@ -249,14 +269,14 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                     quantity = int(row_controls[1].value or 1)
                 except Exception:
                     quantity = 1
-                size = row_controls[2].value.strip()
+                size = f"{row_controls[2].value.strip()} {row_controls[3].value.strip()} {row_controls[4].value.strip()}"
 
                 if name in products_by_name:
                     product = products_by_name[name]
                     prices = get_catalog_prices(product["id"], quantity)
                     unit_price = float(prices["unit_prices"]["price"])
                     line_total = float(prices["total"])
-                    supplier_id = int(row_controls[3].value) if row_controls[3].value else None
+                    supplier_id = int(row_controls[5].value) if row_controls[5].value else None
 
                     temp_items.append({
                         "label": ctrl.controls[0].value,  # כותרת השורה
@@ -315,6 +335,16 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             text_align=ft.TextAlign.RIGHT, disabled=readonly
 
         )
+        cyl_var = ft.TextField(
+            label="צילינדר", width=80, value=initial_item.get("cyl", "") if initial_item else "",
+            text_align=ft.TextAlign.RIGHT, disabled=readonly
+
+        )
+        ax_var = ft.TextField(
+            label="זווית", width=80, value=initial_item.get("ax", "") if initial_item else "",
+            text_align=ft.TextAlign.RIGHT, disabled=readonly
+
+        )
         suggestions_list = ft.Column()
         supplier_var = ft.Dropdown(width=200, options=[], value=None, disabled=readonly)
         price_text = ft.Text("מחיר יח': 0.00  | סה\"כ: 0.00")  # הצגת מחיר בשורה
@@ -361,7 +391,11 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                 quantity = int(quantity_var.value or 1)
             except ValueError:
                 quantity = 1
-            size = size_var.value.strip()
+            cyl = cyl_var.value.strip()
+            ax = ax_var.value.strip()
+            size1 = size_var.value.strip()
+            size = f"{size1} {cyl} {ax}"
+            print("size", size)
             if name in products_by_name:
                 product = products_by_name[name]
                 prices = get_catalog_prices(product["id"], quantity)
@@ -407,7 +441,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
 
         row_container = ft.Column([
             ft.Text(label, weight=ft.FontWeight.BOLD),
-            ft.Row([name_var, quantity_var, size_var, supplier_var], spacing=10),
+            ft.Row([name_var, quantity_var, size_var, cyl_var, ax_var, supplier_var], spacing=10),
             suggestions_list,
             price_text
         ])

@@ -85,7 +85,7 @@ def sizes_for_category(category_id):
                 s += Decimal("0.5")
     return sizes
 # --- שמירת מספר ערכים (dictionary) בבת אחת ---
-def save_existing_inventory(entries,stam=None):
+def save_existing_inventory(entries,stam=None,page = None):
     for entry in entries:
         if entry["count"] is None or str(entry["count"]).strip() == "":
             continue
