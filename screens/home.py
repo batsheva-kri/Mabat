@@ -36,7 +36,7 @@ def HomeScreen(page, user, navigator):
                     ("מחשבון", "#e0fbfc"), ("מסמכים", "#edf6f9"), ("הזמנות", "#fefae0"), ("מעקב משלוחים", "#ffd6a5"), ("חובות", "#eff6a7")
 ]
     if is_manager:
-        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("מעקב משלוחים", "#ffd6a5"), ("חשבון שנתי", "#d0f4de")]
+        base_buttons += [("ניהול עובדים", "#caffbf"), ("ניהול ספקים", "#9bf6ff"), ("חשבון שנתי", "#d0f4de")]
 
 
     cards = []
