@@ -19,6 +19,12 @@ from screens.suppliers_forms import EditSupplierScreen, DeleteSupplierScreen, Ad
 from screens.yearlyReport import YearlyReportScreen
 
 
+from screens.debts import DebtsScreen
+
+from screens.suppliers_forms import EditSupplierScreen, DeleteSupplierScreen, AddSupplierScreen
+
+
+
 class Navigator:
     def __init__(self, page):
         self.page = page
@@ -56,6 +62,8 @@ class Navigator:
         NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
     def go_invitations_supply(self,user):
         Invitation_supply(self, self.page, user)
+    def go_debts(self, user):
+        DebtsScreen(self.page, self, user)
     def go_supplier_orders(self,user):
         OrdersScreen(self.page,self,user)
     def go_add_supplier(self,user,on_save):
@@ -72,3 +80,4 @@ class Navigator:
         InventoryScreen(self.page, user, self, save_fn,show_dropdown)
     def go_yearly_report(self, user):
         YearlyReportScreen(self.page, user, self)
+

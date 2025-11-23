@@ -192,8 +192,7 @@ def EmployeeManagementScreen(page, navigator, user):
                 ),
                 ft.Row([add_btn, report_btn], alignment=ft.MainAxisAlignment.SPACE_EVENLY),
                 ft.Container(height=20),
-                ft.TextButton("⬅ חזרה לבית", on_click=lambda e:  navigator.go_home(user)
-)
+                ft.ElevatedButton("חזרה לבית🏠", on_click=lambda e: navigator.go_home(user), width=120,bgcolor="#f28c7d", color=ft.Colors.WHITE)
             ],
             expand=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,

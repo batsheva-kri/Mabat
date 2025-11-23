@@ -21,6 +21,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
     data_table = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("שם מוצר", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("חברה", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("תמונה", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("קטגוריה", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("מחיר", size=18, weight=ft.FontWeight.BOLD)),
@@ -55,7 +56,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
     # --- שליפת מוצרים ---
     def load_products():
         query = """
-            SELECT p.id, p.name, p.image_path, c.name AS category,
+            SELECT p.id, p.name, p.company, p.image_path, c.name AS category,
                    p.price, p.price_3, p.price_6, p.price_12, p.status
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
@@ -67,7 +68,8 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             query += " AND c.name=?"
             params.append(selected_category.current.value)
         if search_field.current.value:
-            query += " AND p.name LIKE ?"
+            query += " AND (p.name LIKE ? OR p.company LIKE ?)"
+            params.append(f"%{search_field.current.value}%")
             params.append(f"%{search_field.current.value}%")
 
         order = "ASC"
@@ -95,6 +97,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(p["name"])),
+                        ft.DataCell(ft.Text(p["company"] or "-")),
                         ft.DataCell(image_control),
                         ft.DataCell(ft.Text(p["category"] or "-")),
                         ft.DataCell(ft.Text(str(p["price"]))),
@@ -127,6 +130,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 return
             product = product_list[0]
             name_val = product["name"]
+            company_val = product["company"]
             image_val = product["image_path"]
             cat_query = run_query("SELECT name FROM categories WHERE id=?", (product.get("category_id"),))
             cat_val = cat_query[0]["name"] if cat_query else None
@@ -142,10 +146,12 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 if sup_query:
                     sup_val = sup_query[0]["name"]
         else:
-            name_val = image_val = cat_val = status_val = info_val = sup_val = None
-            price_val = p3_val = p6_val = p12_val = 0
 
+            name_val = company_val = image_val = cat_val = status_val = info_val = sup_val = None
+            price_val = p3_val = p6_val = p12_val = 0
         name_field = ft.TextField(label="שם מוצר", value=name_val)
+        company_field = ft.TextField(label="חברה", value=company_val)
+
         selected_image = ft.Text(value=image_val or "-", size=12)
 
         def pick_image_result(e: ft.FilePickerResultEvent):
@@ -177,8 +183,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         def close_dialog():
             page.overlay.clear()
             page.update()
-
-        # --- כאן העיקרון של תיקון pid ---
         def save_product(ev, pid=pid):
             cat_name = category_dropdown.value
             cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,))
@@ -197,25 +201,25 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             image_path = selected_image.value if selected_image.value != "-" else None
 
             if pid:
-                # עדכון מוצר קיים
+
                 run_action("""
                      UPDATE products
-                     SET name=?, image_path=?, category_id=?, status=?, information=?,
+                     SET name=?, company=?, image_path=?, category_id=?, status=?, information=?,
                          preferred_supplier_id=?, price=?, price_3=?, price_6=?, price_12=?
                      WHERE id=?
                  """, (
-                    name_field.value, image_path, cat_id, status_value, info_field.value,
+                    name_field.value, company_field.value, image_path, cat_id, status_value, info_field.value,
                     sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
                     float(price_6_field.value or 0), float(price_12_field.value or 0), pid
                 ))
             else:
-                # הוספת מוצר חדש
                 run_action("""
-                     INSERT INTO products (name, image_path, category_id, status, information,
+                     INSERT INTO products (name, company, image_path, category_id, status, information,
                                            preferred_supplier_id, price, price_3, price_6, price_12)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                  """, (
-                    name_field.value, image_path, cat_id, status_value, info_field.value,
+                    name_field.value, company_field.value, image_path, cat_id, status_value, info_field.value,
+
                     sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
                     float(price_6_field.value or 0), float(price_12_field.value or 0)
                 ))
@@ -224,11 +228,17 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
 
             close_dialog()
             update_table()
-
-        dlg_content = ft.Column([name_field, ft.Row([pick_button, selected_image]),
-                                 category_dropdown, status_dropdown,
-                                 price_field, price_3_field, price_6_field, price_12_field,
-                                 info_field, supplier_dropdown], spacing=10)
+        # --- Container עם גלילה ודינמי לפי מסך ---
+        dlg_content = ft.Container(
+            content=ft.Column([
+                name_field, company_field,
+                ft.Row([pick_button, selected_image]),
+                category_dropdown, status_dropdown,
+                price_field, price_3_field, price_6_field, price_12_field,
+                info_field, supplier_dropdown
+            ], spacing=10, scroll=ft.ScrollMode.AUTO),  # העברת scroll לכאן
+            height=400  # במקום max_height
+        )
 
         page.overlay.clear()
         page.overlay.append(
@@ -287,17 +297,25 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         controls=[
             ft.Row([
                 ft.ElevatedButton("מחירון מלאי", on_click=lambda e: CatalogScreen(page, navigator, user, "inventory")),
-                ft.ElevatedButton("מחירון הזמנות",
-                                  on_click=lambda e: CatalogScreen(page, navigator, user, "invitation")),
+                ft.ElevatedButton("מחירון הזמנות", on_click=lambda e: CatalogScreen(page, navigator, user, "invitation")),
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
 
             ft.Row([
                 ft.Dropdown(ref=selected_category, label="קטגוריה", options=get_categories(),
                             on_change=lambda e: update_table()),
-                ft.TextField(ref=search_field, label="חיפוש לפי שם", on_change=lambda e: update_table()),
+
+                ft.TextField(ref=search_field, label="חיפוש לפי שם או חברה", on_change=lambda e: update_table()),
+
                 ft.Dropdown(ref=price_sort, label="סדר לפי מחיר",
                             options=[ft.dropdown.Option("מהנמוך לגבוה"), ft.dropdown.Option("מהגבוה לנמוך")],
                             on_change=lambda e: update_table())
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+
+            ft.Row([
+                ft.ElevatedButton("➕ הוסף מוצר לקטלוג", on_click=add_product_dialog, bgcolor="#52b69a", color="white"),
+                ft.ElevatedButton("➕ הוסף קטגוריה", on_click=add_category_dialog, bgcolor="#4d96ff", color="white"),
+                ft.ElevatedButton("חזרה לבית🏠", on_click=lambda e: navigator.go_home(user), width=120,
+                                  bgcolor="#f28c7d", color=ft.Colors.WHITE)
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
 
             ft.Container(
@@ -305,13 +323,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 expand=True, padding=10, bgcolor=ft.Colors.WHITE, border_radius=10,
                 border=ft.border.all(1, ft.Colors.GREY_300),
             ),
-
-            ft.Row([
-                ft.ElevatedButton("➕ הוסף מוצר לקטלוג", on_click=add_product_dialog, bgcolor="#52b69a", color="white"),
-                ft.ElevatedButton("➕ הוסף קטגוריה", on_click=add_category_dialog, bgcolor="#4d96ff", color="white"),
-                ft.ElevatedButton("חזור", on_click=lambda e: navigator.go_home(user), width=120,
-                                  bgcolor="#f28c7d", color=ft.Colors.WHITE)
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
         ],
         expand=True, spacing=15, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         scroll=ft.ScrollMode.AUTO, rtl=True

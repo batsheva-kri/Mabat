@@ -3,6 +3,8 @@ import os
 import sys
 from pathlib import Path
 import shutil  # להעתקה/הורדה אם צריך
+import win32print
+import win32api
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
@@ -46,7 +48,7 @@ def DocumentsScreen(page, user, navigator):
                                     icon=ft.Icons.PRINT,
                                     tooltip="הדפסה",
                                     icon_color="#52b69a",
-                                    on_click=lambda e, fp=file_path: os.startfile(fp, "print")
+                                    on_click=lambda e, fp=file_path: print_file(fp)
                                 ),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE,
@@ -74,6 +76,22 @@ def DocumentsScreen(page, user, navigator):
         shutil.copy(file_path, dest_path)
         print(f"הקובץ הורד ל: {dest_path}")
 
+    # --- פונקציה להדפסה של כל סוגי הקבצים ---
+    def print_file(file_path: Path):
+        try:
+            printer_name = win32print.GetDefaultPrinter()
+            win32api.ShellExecute(
+                0,
+                "print",
+                str(file_path),
+                f'/d:"{printer_name}"',
+                ".",
+                0
+            )
+            print(f"הקובץ נשלח להדפסה: {file_path.name}")
+        except Exception as e:
+            print(f"שגיאה בהדפסה של {file_path.name}: {e}")
+
     # --- פונקציה להעלאת קבצים ---
     def on_file_picker_result(e: ft.FilePickerResultEvent):
         if e.files:
@@ -97,7 +115,7 @@ def DocumentsScreen(page, user, navigator):
     )
 
     back_button = ft.ElevatedButton(
-        "⬅ חזרה לבית",
+        "חזרה לבית🏠",
         bgcolor="#f28c7d",
         color="white",
         on_click=lambda e: navigator.go_home(user)

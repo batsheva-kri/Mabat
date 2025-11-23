@@ -142,7 +142,6 @@ def DeleteSupplierScreen(page, navigator,user, supplier_data=None, on_save=None)
 
     def back_to_suppliers():
         navigator.go_suppliers(user)
-
     page.controls.clear()
     page.add(
         ft.Container(

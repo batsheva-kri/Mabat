@@ -42,11 +42,11 @@ def CalculatorScreen(page, user, navigator):
         row_buttons = []
         for label in row:
             if label == "C":
-                btn = ft.ElevatedButton(label, width=60, height=60, on_click=clear_result)
+                btn = ft.ElevatedButton(label, width=60, height=60, on_click=clear_result, color="#f28c7d" )
             elif label == "=":
-                btn = ft.ElevatedButton(label, width=60, height=60, on_click=calculate_result)
+                btn = ft.ElevatedButton(label, width=60, height=60, on_click=calculate_result , color="#f28c7d")
             else:
-                btn = ft.ElevatedButton(label, width=60, height=60, data=label, on_click=append_number)
+                btn = ft.ElevatedButton(label, width=60, height=60, data=label, on_click=append_number ,color="#52b69a")
             row_buttons.append(btn)
         rows.append(ft.Row(controls=row_buttons, spacing=5, alignment=ft.MainAxisAlignment.CENTER))
 
@@ -58,10 +58,10 @@ def CalculatorScreen(page, user, navigator):
                 result_field,
                 ft.Column(controls=rows, spacing=5),
                 ft.ElevatedButton(
-                    "חזרה לבית",
+                    "חזרה לבית🏠",
                     on_click=lambda e: navigator.go_home(user),
                     width=120,
-                    bgcolor="#52b69a",
+                    bgcolor="#f28c7d",
                     color=ft.Colors.WHITE
                 )
             ],

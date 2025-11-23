@@ -67,7 +67,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             it["size"] = sphere
             it["cyl"] = cylinder
             it["ax"] = axis
-
             product = products_by_name.get(it["product_name"])
             if product:
                 prices = get_catalog_prices(product["id"], it.get("quantity", 1))
@@ -345,6 +344,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             text_align=ft.TextAlign.RIGHT, disabled=readonly
 
         )
+
         suggestions_list = ft.Column()
         supplier_var = ft.Dropdown(width=200, options=[], value=None, disabled=readonly)
         price_text = ft.Text("מחיר יח': 0.00  | סה\"כ: 0.00")  # הצגת מחיר בשורה

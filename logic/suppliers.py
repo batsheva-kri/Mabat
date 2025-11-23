@@ -149,7 +149,6 @@ def mark_supplied(invitation_id, supplied):
         if total_supplied > quantity:
             total_supplied = quantity
         now =datetime.now().isoformat()
-        # עדכון כמות שסופקה בפועל
         run_query(
             "UPDATE supplier_invitations SET supplied = ?, supplying_date = ? WHERE id = ?",
             (total_supplied, now, invitation_id),
@@ -293,7 +292,6 @@ def save_arrived_inventory(items, supplier_id, page=None):
             (supplier_id, date_, product_id, count, calc),
             commit=True
         )
-
         # בדיקה אם המוצר היה מוזמן
         invitation_id = get_supplier_invitation(supplier_id, product_id, size)
         if invitation_id is not None:
@@ -358,7 +356,11 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         run_query(query, params, commit=True)
 def get_open_orders(supplier_id=None):
     query = """
+<<<<<<< HEAD
     SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date, ci.total_price AS total,
+=======
+    SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date,
+>>>>>>> origin/main
            p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size
            FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
     JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
@@ -375,9 +377,15 @@ def get_open_orders(supplier_id=None):
     return run_query(query, params, fetchall=True)
 def get_closed_orders(supplier_id=None):
     query = """
+<<<<<<< HEAD
     SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name, ci.total_price AS total,
            p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
            si.supplied, supplying_date
+=======
+    SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name,
+           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
+           si.supplied
+>>>>>>> origin/main
      FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
     JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
     JOIN suppliers s ON si.supplier_id = s.id
