@@ -1,5 +1,7 @@
 import flet as ft
 from logic.auth import authenticate_by_password
+from logic.db import resource_path
+
 
 def LoginScreen(page, navigator):
     page.title = "Mabat Login"
@@ -43,7 +45,7 @@ def LoginScreen(page, navigator):
     )
 
     bg_image = ft.Container(
-        content=ft.Image(src="../assets/shop_bg.png", fit=ft.ImageFit.CONTAIN),
+        content=ft.Image(src=resource_path("assets/shop_bg.png"), fit=ft.ImageFit.CONTAIN),
         alignment=ft.alignment.center,
         expand=True
     )

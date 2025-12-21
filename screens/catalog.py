@@ -41,11 +41,11 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
 
     # --- שליפת קטגוריות וספקים ---
     def get_categories():
-        rows = run_query("SELECT name FROM categories")
+        rows = run_query("SELECT name FROM categories",fetchall=True)
         return [ft.dropdown.Option(r["name"] or "-") for r in rows]
 
     def get_suppliers():
-        rows = run_query("SELECT name FROM suppliers")
+        rows = run_query("SELECT name FROM suppliers" ,fetchall=True)
         return [ft.dropdown.Option(r["name"] or "-") for r in rows]
 
     def refresh_category_dropdown():
@@ -77,7 +77,9 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             order = "DESC"
         query += f" ORDER BY p.price {order}"
 
-        return run_query(query, tuple(params))
+        products = run_query(query, tuple(params),fetchall=True)
+        print("products", products)
+        return products
 
     # --- עדכון טבלה ---
     def update_table():
@@ -124,7 +126,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         suppliers = get_suppliers()
 
         if pid:
-            product_list = run_query("SELECT * FROM products WHERE id=?", (pid,))
+            product_list = run_query("SELECT * FROM products WHERE id=?", (pid,),fetchall=True)
             if not product_list:
                 ft.alert("המוצר לא נמצא")
                 return
@@ -132,7 +134,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             name_val = product["name"]
             company_val = product["company"]
             image_val = product["image_path"]
-            cat_query = run_query("SELECT name FROM categories WHERE id=?", (product.get("category_id"),))
+            cat_query = run_query("SELECT name FROM categories WHERE id=?", (product.get("category_id"),), fetchall=True)
             cat_val = cat_query[0]["name"] if cat_query else None
             status_val = product["status"]
             price_val = product["price"]
@@ -142,7 +144,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             info_val = product["information"]
             sup_val = None
             if product.get("preferred_supplier_id"):
-                sup_query = run_query("SELECT name FROM suppliers WHERE id=?", (product["preferred_supplier_id"],))
+                sup_query = run_query("SELECT name FROM suppliers WHERE id=?", (product["preferred_supplier_id"],),fetchall=True)
                 if sup_query:
                     sup_val = sup_query[0]["name"]
         else:
@@ -185,16 +187,16 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             page.update()
         def save_product(ev, pid=pid):
             cat_name = category_dropdown.value
-            cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,))
+            cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,),fetchone=True)
             if not cat:
                 run_action("INSERT INTO categories (name) VALUES (?)", (cat_name,))
-                cat_id = run_query("SELECT last_insert_rowid() AS id")[0]["id"]
+                cat_id = run_query("SELECT last_insert_rowid() AS id",fetchall=True)[0]["id"]
                 refresh_category_dropdown()
             else:
-                cat_id = cat[0]["id"]
+                cat_id = cat["id"]
 
             sup_name = supplier_dropdown.value
-            sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,))
+            sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,),fetchall=True)
             sup_id = sup[0]["id"] if sup else None
 
             status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
@@ -224,7 +226,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                     float(price_6_field.value or 0), float(price_12_field.value or 0)
                 ))
                 # אחזור ה-ID של המוצר החדש
-                pid = run_query("SELECT last_insert_rowid() AS id")[0]["id"]
+                pid = run_query("SELECT last_insert_rowid() AS id",fetchall=True)[0]["id"]
 
             close_dialog()
             update_table()

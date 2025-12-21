@@ -1,3 +1,4 @@
+from logic.db import run_action
 from logic.utils import run_query
 
 def get_all_customers():
@@ -71,29 +72,49 @@ def get_orders_for_customer(customer_id):
             "supplied": r["supplied"]
         })
     return list(invitations.values())
-def add_customer(name: str, phone: str, email: str = None, notes: str = None) -> int:
-    """
-    מוסיף לקוח חדש לטבלת customers ומחזיר את המזהה (id).
-    עובד עם run_query בדיוק כמו בשאר הפונקציות שלך.
-    """
-    params = (name, phone, email, notes)
-    try:
-        row = run_query("""
-            INSERT INTO customers (name, phone, email, notes)
-            VALUES (?, ?, ?, ?)
-            RETURNING id
-        """, params, fetchone=True)
-        return row["id"] if isinstance(row, dict) else row[0]
-    except Exception:
-        # תאימות לאחור: הוספה רגילה ואז שליפת last_insert_rowid()
-        run_query("""
-            INSERT INTO customers (name, phone, email, notes)
-            VALUES (?, ?, ?, ?)
-        """, params)
-        row = run_query("SELECT last_insert_rowid() AS id", (), fetchone=True)
-        return row["id"] if isinstance(row, dict) else row[0]
+def customer_exists_by_name(name: str) -> bool:
+    row = run_query("SELECT id FROM customers WHERE name = ?", (name,), fetchone=True)
+    return row is not None
+def customer_exists_by_phone(phone: str) -> bool:
+    row = run_query("SELECT id FROM customers WHERE phone = ?", (phone,), fetchone=True)
+    return row is not None
+def get_customer_by_phone(phone):
+    return run_query("SELECT name FROM customers WHERE phone = ?", (phone,), fetchone=True)
+
+class PhoneAlreadyExists(Exception):
+    pass
+def add_customer(name: str, phone: str, phone2:str , address: str, email: str = None, notes: str = None, allow_duplicate_name=False) -> int:
+    # בדיקת טלפון — לא לאפשר
+    if customer_exists_by_phone(phone):
+        raise PhoneAlreadyExists("קיים כבר לקוח עם מספר טלפון זהה")
+
+    # בדיקת שם — רק אם לא מאשרים כפילויות
+    if not allow_duplicate_name and customer_exists_by_name(name):
+        # נודיע למעלה שקיים שם, אבל כן נאפשר אם המשתמש ביקש
+        return -1  # יחזר לסמן "שם קיים" אבל לא למנוע
+    print("I try to add")
+    # הכנסת הלקוח
+    params = (name, phone, phone2, address,  email, notes)
+    run_action("""
+        INSERT INTO customers (name, phone, phone2, address, email, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, params)
+    row = run_query("SELECT id FROM customers WHERE phone = ?", (phone,),fetchone=True)
+    print("It's run")
+    print("row",row)
+    return row["id"]
+
 def get_customer_by_id(customer_id):
     print("customer_id",customer_id)
     return run_query("SELECT * FROM customers WHERE id = ?", (customer_id,), fetchall=True)
 def get_customer_name_by_id(id):
     return run_query("SELECT name FROM customers WHERE id = ?",(id,),fetchone=True)
+def update_customer(customer_id, customer_details):
+    run_query( "UPDATE customers SET name = ?, phone = ?,phone2 = ?, address = ?, email = ?, notes = ? WHERE id = ?",
+               (customer_details["name"], customer_details["phone"],customer_details["phone2"],customer_details["address"],
+                customer_details["email"] , customer_details["notes"], customer_id),commit=True)
+def delete_customer(cust_id):
+    run_query("DELETE FROM customers WHERE id = ?", (cust_id,),commit=True)
+
+def get_item(inv_id):
+    return run_query("SELECT cii.*, customer_id FROM customer_invitation_items cii JOIN customer_invitations ci WHERE cii.id=?", (inv_id,), fetchone=True)

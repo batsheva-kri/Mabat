@@ -1,5 +1,6 @@
 import datetime
 
+from logic.products import get_product_name_by_id
 from logic.utils import run_query
 from logic.writing_in_google_sheet import write
 
@@ -93,40 +94,73 @@ def update_invitation(invitation_id: int, header: dict):
     )
     if not existing:
         return False
-
-    query = """
-        UPDATE customer_invitations
-        SET customer_id = ?,
-            created_by_user_id = ?,
-            date_ = ?,
-            notes = ?,
-            total_price = ?,
-            status = ?,
-            call = ?,
-            delivery_requested = ?,
-            delivery_sent = ?,
-            curvature = ?,
-            prescription = ?,
-            color = ?,
-            multifokal = ?
-        WHERE id = ?
-    """
-    params = (
-        header.get("customer_id"),
-        header.get("created_by_user_id"),
-        header.get("date_"),
-        header.get("notes"),
-        header.get("total_price"),
-        header.get("status"),
-        header.get("call"),
-        header.get("want_shipping", 0),
-        header.get("shipped", 0),
-        header.get("curvature"),
-        header.get("prescription"),
-        header.get("color"),
-        header.get("multifokal"),
-        invitation_id
-    )
+    curvature_val = header.get("curvature")
+    if curvature_val is None or curvature_val == "None":
+        query = """
+            UPDATE customer_invitations
+            SET customer_id = ?,
+                created_by_user_id = ?,
+                date_ = ?,
+                notes = ?,
+                total_price = ?,
+                status = ?,
+                call = ?,
+                delivery_requested = ?,
+                delivery_sent = ?,
+                prescription = ?,
+                color = ?,
+                multifokal = ?
+            WHERE id = ?
+        """
+        params = (
+            header.get("customer_id"),
+            header.get("created_by_user_id"),
+            header.get("date_"),
+            header.get("notes"),
+            header.get("total_price"),
+            header.get("status"),
+            header.get("call"),
+            header.get("want_shipping", 0),
+            header.get("shipped", 0),
+            header.get("prescription"),
+            header.get("color"),
+            header.get("multifokal"),
+            invitation_id
+        )
+    else:
+        query = """
+                   UPDATE customer_invitations
+                   SET customer_id = ?,
+                       created_by_user_id = ?,
+                       date_ = ?,
+                       notes = ?,
+                       total_price = ?,
+                       status = ?,
+                       call = ?,
+                       delivery_requested = ?,
+                       delivery_sent = ?,
+                       curvature = ?,
+                       prescription = ?,
+                       color = ?,
+                       multifokal = ?
+                   WHERE id = ?
+               """
+        params = (
+            header.get("customer_id"),
+            header.get("created_by_user_id"),
+            header.get("date_"),
+            header.get("notes"),
+            header.get("total_price"),
+            header.get("status"),
+            header.get("call"),
+            header.get("want_shipping", 0),
+            header.get("shipped", 0),
+            header.get("curvature"),
+            header.get("prescription"),
+            header.get("color"),
+            header.get("multifokal"),
+            invitation_id
+        )
     run_query(query, params, commit=True)
     return True
 # פונקציה חדשה לעדכון שדות סטטוס בלבד
@@ -263,5 +297,19 @@ def auto_save_field(invitation_id, field, value):
     print(f"עודכן {field} ל-{value} להזמנה {invitation_id}")
 def get_invitation_items_by_invitation_id(customer_invitation_id):
     invitations = run_query("SELECT * FROM  customer_invitation_items WHERE invitation_id =?", (customer_invitation_id,),fetchall=True)
+    for inv in invitations:
+        inv["product_name"] = get_product_name_by_id(inv["id"])
     print("invitations", invitations)
     return invitations
+def cancel_c_invitation(invitation_id):
+    run_query(
+        "UPDATE customer_invitations SET status = 'canceled' WHERE id = ?",
+        (invitation_id,),
+        commit=True
+    )
+    run_query(
+        "UPDATE customer_invitation_items SET supplied = quantity WHERE invitation_id = ?",
+        (invitation_id,),
+        commit=True
+    )
+

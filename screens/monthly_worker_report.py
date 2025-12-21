@@ -13,7 +13,7 @@ def MonthlyWorkerReportScreen(page, user, go_employee_management):
             SELECT MAX(strftime('%Y-%m', date_)) as last_month
             FROM worker_reports
             WHERE user_id=?
-        """, (user_id,))
+        """, (user_id,),fetchall=True)
         if result and result[0]["last_month"]:
             return result[0]["last_month"]
         else:
@@ -79,7 +79,7 @@ def MonthlyWorkerReportScreen(page, user, go_employee_management):
             FROM worker_reports
             WHERE user_id=? AND strftime('%Y-%m', date_) = ?
             ORDER BY date_
-        """, (user_id, month_value))
+        """, (user_id, month_value),fetchall=True)
 
         report_table.rows.clear()
         total_hours = 0.0
@@ -146,7 +146,7 @@ def MonthlyWorkerReportScreen(page, user, go_employee_management):
         text_align=ft.TextAlign.CENTER
     )
 
-    users = run_query("SELECT id, user_name FROM users")
+    users = run_query("SELECT id, user_name FROM users",fetchall=True)
     user_dropdown = ft.Dropdown(
         label="בחר עובד",
         options=[ft.dropdown.Option(str(u["id"]), u["user_name"]) for u in users],

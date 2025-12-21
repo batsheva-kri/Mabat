@@ -1,3 +1,4 @@
+from logic.db import resource_path
 from logic.orders import get_order_by_id
 from logic.products import get_product_name_by_id
 from logic.utils import run_query
@@ -143,7 +144,7 @@ def mark_supplied(invitation_id, supplied):
     )
     if inv:
         quantity = inv["quantity"]
-        total_supplied = inv["supplied"] + supplied
+        total_supplied = inv["supplied"] + int(supplied)
 
         # לא לעבור על הכמות שהוזמנה
         if total_supplied > quantity:
@@ -187,24 +188,39 @@ def get_supplier_monthly_report(supplier_id, year, month):
     ret = run_query(query, (supplier_id, str(year), f"{int(month):02d}"), fetchall=True)
     return ret
 def add_to_supplier_report(supplier_id, products):
+    from logic.utils import run_query
+    print("alllllllllllllll",run_query("SELECT * FROM suppliers_catalog", fetchall=True))
     query = """
         INSERT INTO supplier_reports(supplier_id, date_ , product_id, count_ , calc) VALUES (?,?,?,?,?)
     """
+    print("supplier_id",supplier_id)
     for p in products:
-        price = run_query(
+        price_row = run_query(
             "SELECT price FROM suppliers_catalog WHERE supplier_id = ? AND product_id = ?",
             (supplier_id, p["id"]),
-            fetchall=True
-        )[0]["price"]
+            fetchone=True, commit=True
+        )
+
+        print("price_row:", price_row)
+
+        price = price_row["price"] if price_row else None
+        print("price:", price)
+        print("count", p["count"])
+        print("count type", type(p["count"]))
 
         now = datetime.now()
 
         run_query(
             query,
-            (supplier_id, now, p["id"], p["count"], p["count"] * price),
+            (supplier_id, now, p["id"], p["count"], float(p["count"]) * price),
             fetchall=False
         )
-
+def cancel_s_invitation(customer_inv_id):
+    run_query(
+        "UPDATE supplier_invitations SET supplied = quantity, close = 1 WHERE customer_invitation_id = ?",
+        (customer_inv_id,),
+        commit=True
+    )
 def get_suppliers_catalog_by_supplier_id(supplier_id):
     query = """SELECT sc.product_id, p.name as product_name, sc.price, sc.supplier_id
         FROM suppliers_catalog sc
@@ -219,7 +235,7 @@ def add_supplier_catalog_entry(entry):
         product_id = existing["id"]
     else:
         # מוסיפים מוצר חדש
-        run_query("INSERT INTO products (name) VALUES (?)", (entry["product_name"],), fetchone=True)
+        run_query("INSERT INTO products (name) VALUES (?)", (entry["product_name"],), fetchone=True, commit=True)
         product_id = run_query("SELECT id FROM products where name=?",(entry["product_name"],), fetchone=True)
         print(product_id)
         # שולפים את המזהה האחרון בצורה בטוחה
@@ -325,10 +341,16 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
     """
     header = get_order_by_id(customer_invitation_id)
     print("I am in create_supplier_invitations function")
-    if supplier_id == 6:#לשנות בהמשך לפי המסד האמיתי
-        write_supplier2_google_sheet(supplier_id, header, items)
-    else:
-        write(supplier_id, header, items)
+    try:
+        print("HEADER:", header)
+        if supplier_id == 6:
+            write_supplier2_google_sheet(supplier_id, header, items)
+        else:
+            write(supplier_id, header, items)
+
+    except Exception as e:
+        print("ERROR writing to Google Sheets:", e)
+        raise  # מחזירים החריגה לפונקציה שקראה לנו
 
     print("I am in create_supplier_invitations function, and I wrote in the sheet")
     if date_ is None:
@@ -356,11 +378,7 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         run_query(query, params, commit=True)
 def get_open_orders(supplier_id=None):
     query = """
-<<<<<<< HEAD
     SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date, ci.total_price AS total,
-=======
-    SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date,
->>>>>>> origin/main
            p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size
            FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
     JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
@@ -377,15 +395,9 @@ def get_open_orders(supplier_id=None):
     return run_query(query, params, fetchall=True)
 def get_closed_orders(supplier_id=None):
     query = """
-<<<<<<< HEAD
     SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name, ci.total_price AS total,
            p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
            si.supplied, supplying_date
-=======
-    SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name,
-           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
-           si.supplied
->>>>>>> origin/main
      FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
     JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
     JOIN suppliers s ON si.supplier_id = s.id
@@ -437,8 +449,8 @@ import base64
 downloads_dir = str(Path.home() / "Downloads")
 os.makedirs(downloads_dir, exist_ok=True)
 ASSETS_DIR = "../../Mabat/assets"
-logo_path = os.path.join(ASSETS_DIR, "shop_bg.png")
-arial_path = os.path.join(ASSETS_DIR, "arial.ttf")
+logo_path = resource_path("assets/shop_bg.png")
+arial_path = resource_path("assets/arial.ttf")
 
 # --- Base64 ---
 def _file_to_base64(path):

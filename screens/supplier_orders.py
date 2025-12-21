@@ -88,8 +88,8 @@ def OrdersScreen(page, navigator, user):
             label="סטטוס הזמנה",
             options=[
                 ft.dropdown.Option("כולן"),
-                ft.dropdown.Option("פתוחות"),
-                ft.dropdown.Option("סגורות")
+                ft.dropdown.Option("הזמנות שלא סופקו"),
+                ft.dropdown.Option("הזמנות שסופקו")
             ],
             value=selected_status,
             on_change=on_filter_change,
@@ -98,14 +98,14 @@ def OrdersScreen(page, navigator, user):
 
         controls = [ft.Row([supplier_dropdown, status_dropdown], spacing=20)]
 
-        if selected_status in ("כולן", "פתוחות"):
-            controls.append(ft.Text("הזמנות פתוחות", size=20, weight=ft.FontWeight.BOLD))
-            controls.append(build_table(open_orders, is_open=True))
+        if selected_status in ("כולן", "הזמנות שסופקו"):
+            controls.append(ft.Text("הזמנות שסופקו", size=20, weight=ft.FontWeight.BOLD))
+            controls.append(build_table(open_orders, is_open=False))
             controls.append(ft.Divider())
 
-        if selected_status in ("כולן", "סגורות"):
-            controls.append(ft.Text("הזמנות סגורות", size=20, weight=ft.FontWeight.BOLD))
-            controls.append(build_table(closed_orders, is_open=False))
+        if selected_status in ("כולן", "הזמנות שלא סופקו"):
+            controls.append(ft.Text("הזמנות שלא סופקו", size=20, weight=ft.FontWeight.BOLD))
+            controls.append(build_table(closed_orders, is_open=True))
             controls.append(ft.Divider())
 
         controls.append(ft.ElevatedButton("⬅ חזרה", on_click=lambda e: navigator.go_home(user)))

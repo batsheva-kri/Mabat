@@ -4,7 +4,7 @@ import webbrowser
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from logic.db import run_query, run_action
+from logic.db import run_query, run_action, resource_path
 import pdfkit
 import base64
 import html
@@ -21,7 +21,7 @@ def add_delivery(name, address, phone1, phone2=None, paid=False, home_delivery=F
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         created_by_user_id, notes
     ))
-    return run_query("SELECT last_insert_rowid() AS id")[0]["id"]
+    return run_query("SELECT last_insert_rowid() AS id",fetchall=True)[0]["id"]
 
 def update_delivery(delivery_id, name, address, phone1, phone2=None, paid=False, home_delivery=False, notes=None):
     run_action("""
@@ -48,7 +48,7 @@ def get_deliveries(filter_paid=None, month_year=None, search_text=None):
         like_text = f"%{search_text}%"
         params.extend([like_text, like_text, like_text])
     query += " ORDER BY created_at DESC"
-    return run_query(query, tuple(params))
+    return run_query(query, tuple(params),fetchall=True)
 
 def get_deliveries_this_month():
     now = datetime.now()
@@ -63,8 +63,8 @@ downloads_dir = str(Path.home() / "Downloads")
 os.makedirs(downloads_dir, exist_ok=True)
 ASSETS_DIR = "../../Mabat/assets"
 logo_filename = "shop_bg.png"
-logo_path = os.path.join(ASSETS_DIR, logo_filename)
-arial_path = os.path.join(ASSETS_DIR, "arial.ttf")
+logo_path = resource_path("assets/shop_bg.png")
+arial_path = resource_path("assets/arial.ttf")
 
 # --- Helper functions ---
 def _maybe_reshape_hebrew(text: str) -> str:

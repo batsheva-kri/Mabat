@@ -217,9 +217,12 @@
 import pdfkit
 import os
 
+from logic.db import resource_path
+
+
 def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing_invitation,
                          created_by_user_name, delivery_data=None, discount=0.0, output_file="invoice.pdf"):
-    logo_path = os.path.abspath(r"C:\מירי\מבט\assets\shop_bg.png")
+    logo_path = resource_path("assets/shop_bg.png")
 
     subtotal = sum(i.get('line_total', 0) for i in existing_invitation["items"])
     total_price = max(subtotal - total_discount - discount, 0)
@@ -290,22 +293,21 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
         </div>
         """
 
+
+    # <!DOCTYPE html>
+    # <html lang="he" dir="rtl">
+    # <head>
+    #     <meta charset="UTF-8">
+    #     <style>
+    #         body {{ font-family: 'Assistant', Arial, sans-serif; margin:0; padding:0; }}
+    #     </style>
+    # </head>
+    # <body>
+    #     {left_html}
+    #     {right_html}
+    # </body>
+    # </html>
     html_content = f"""
-    <!DOCTYPE html>
-    <html lang="he" dir="rtl">
-    <head>
-<<<<<<< HEAD
-        <meta charset="UTF-8">
-        <style>
-            body {{ font-family: 'Assistant', Arial, sans-serif; margin:0; padding:0; }}
-        </style>
-    </head>
-    <body>
-        {left_html}
-        {right_html}
-    </body>
-    </html>
-=======
     <meta charset="UTF-8">
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant&display=swap');
@@ -458,8 +460,8 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
 
     <p class="total">סה"כ: {subtotal:.2f} ₪ | לאחר הנחה: {total_price:.2f} ₪</p>
     <div class="notes"><strong>הערות:</strong> {existing_invitation.get('notes') or "-"}</div>
->>>>>>> origin/main
     """
+    # >>>>>>> origin/main
 
     # === הוספת פרטי משלוח אם קיימים ===
     if delivery_data:

@@ -108,36 +108,48 @@
 import os
 import sqlite3
 from datetime import datetime
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # תיקיית logic
-DB_PATH = os.path.join(BASE_DIR, "..", "Mabat_db.db")
-DB_PATH = os.path.normpath(DB_PATH)
+
+from logic.db import get_connection
+
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # תיקיית logic
+# DB_PATH = os.path.join(BASE_DIR, "..", "Mabat_db.db")
+# DB_PATH = os.path.normpath(DB_PATH)
 
 def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
     """
     מבצע שאילתה על מסד הנתונים.
     - fetchone/fetchall מחזירים שורות SELECT
     - commit מבצע commit על INSERT/UPDATE/DELETE
-    - במקרה של INSERT, מחזיר את lastrowid במקום None
+    - מחזיר lastrowid במקרה של INSERT רגיל
+    - מחזיר את התוצאה במקרה של INSERT ... RETURNING
     """
-    with sqlite3.connect(DB_PATH, timeout=10) as conn:
-        conn.row_factory = sqlite3.Row
+    try:
+        conn = get_connection()
         cur = conn.cursor()
-        try:
-            cur.execute(query, params)
-            if commit:
-                conn.commit()
-                # אם זה INSERT מחזירים את lastrowid
-                if query.strip().upper().startswith("INSERT"):
-                    return cur.lastrowid
-            if fetchone:
-                row = cur.fetchone()
-                return dict(row) if row else None
-            if fetchall:
-                rows = cur.fetchall()
-                return [dict(r) for r in rows]
-        finally:
-            cur.close()
-    return None
+        cur.execute(query, params)
+
+        # אם השאילתה משנה נתונים
+        if commit:
+            conn.commit()
+
+        # אם זה SELECT / RETURNING
+        if fetchone:
+            row = cur.fetchone()
+            return dict(row) if row else None
+        if fetchall:
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+
+        # במקרה של INSERT רגיל בלי RETURNING
+        if query.strip().upper().startswith("INSERT") and "RETURNING" not in query.upper() and commit:
+            return cur.lastrowid
+
+    except sqlite3.Error as e:
+        print("SQL Error:", e)
+        return None
+    finally:
+        cur.close()
+        conn.close()
 
 def insert_worker_entry(user_id: int):
     """מכניס שורה חדשה לדו"ח עובדים כשעובד מתחבר"""

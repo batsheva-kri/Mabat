@@ -1,14 +1,17 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+
+from logic.db import resource_path
 from logic.products import get_id_by_product_name, get_vista_name
 # הגדרת ההרשאות
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
+json_path = resource_path("alien-drake-445721-e9-e11ed308249c.json")
 creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "alien-drake-445721-e9-e11ed308249c.json", scope
+    json_path, scope
 )
 client = gspread.authorize(creds)
 def write(supplier_id,header:dict,items):

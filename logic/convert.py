@@ -212,7 +212,6 @@ def get_supplier_invitation(
 
     # ניתן למיין לפי עדיפויות אם יש צורך; כרגע פשוט נחדיר את כל התוצאות
     cust_rows = run_query(cust_query, tuple(cust_params), fetchall=True)
-    print("cust_rows ",cust_rows)
     # עבור כל שורת לקוח נחשב את המחרוזות האפשריות ונשווה ל-arrived_combined
     for row in cust_rows:
         cust_size_str = row.get("cust_size")
@@ -222,11 +221,6 @@ def get_supplier_invitation(
             possible_arrived = customer_size_to_possible_arrived(cust_size_str)
         # אם המוצר שהגיע קיים ברשימת האפשרויות -> זו התאמה
         if arrived_combined in possible_arrived:
-            print("arrived_combined",arrived_combined)
-            print("possible_arrived", possible_arrived)
-            print("supplier_inv_id ",row["supplier_inv_id"])
-            print("item_id", row["item_id"])
-            print("cust_inv_id" ,row["cust_inv_id"])
             return {"supplier_inv_id": row["supplier_inv_id"],"customer_invitation_item_id": row["item_id"],"cust_inv_id":row["cust_inv_id"]}
 
     # אם לא מצאנו התאמה בכל הזמנות הספק
