@@ -30,7 +30,7 @@ def DebtsScreen(page, navigator, user):
 
     # --- שליפת חובות ---
     def load_debts():
-        rows = run_query("SELECT * FROM debts",fetchall=True)
+        rows = run_query("SELECT * FROM debts")
         data_table.rows.clear()
         for i, r in enumerate(rows):
             actions = ft.Row([
