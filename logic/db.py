@@ -90,6 +90,22 @@ def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
 # -----------------------------
 # ביצוע פעולות ללא החזרת תוצאה
 # -----------------------------
+
+def run_query(query, params=()):
+    print("Running SQL Query:", query, "Params:", params)
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        print("Query returned", len(rows), "rows")
+        return [dict(row) for row in rows]
+    except sqlite3.Error as e:
+        print("SQL Query failed:", e)
+        return []
+    finally:
+        conn.close()
+
 def run_action(query, params=()):
     """
     מבצע INSERT/UPDATE/DELETE ומבצע commit באופן בטוח
