@@ -163,7 +163,6 @@ def SuppliersScreen(page, user, navigator):
     # --- טבלת ספקים ---
     supplier_table = ft.DataTable(
         columns=[
-            ft.DataColumn(ft.Text("ID", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("שם", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("טלפון", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("אימייל", size=18, weight=ft.FontWeight.BOLD)),
@@ -192,7 +191,6 @@ def SuppliersScreen(page, user, navigator):
             supplier_table.rows.append(
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(s["id"])),
                         ft.DataCell(ft.Text(s["name"])),
                         ft.DataCell(ft.Text(s["phone"])),
                         ft.DataCell(ft.Text(s["email"])),

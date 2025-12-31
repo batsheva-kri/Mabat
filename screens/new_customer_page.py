@@ -90,9 +90,9 @@ def NewCustomerPage(page, current_user, navigator):
             email_var,
             notes_var,
             ft.Row([
-                ft.ElevatedButton("💾 שמור והמשך להזמנה", on_click=save_customer),
-                ft.ElevatedButton("חזרה", on_click=lambda e: navigator.go_orders(user=current_user))
-            ], alignment=ft.MainAxisAlignment.START, spacing=10)
+                ft.ElevatedButton("💾 שמור והמשך להזמנה", on_click=save_customer ,bgcolor="#52b69a", color="white"),
+                ft.ElevatedButton("חזרה⬅️", on_click=lambda e: navigator.go_orders(user=current_user),bgcolor="#f28c7d", color="white",)
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
         ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
     )
     page.update()

@@ -767,25 +767,28 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             items_list,
             ft.Row([discount_var, total_var], spacing=20),
             ft.Row([
-                ft.ElevatedButton("🖨️ הדפסה חשבונית", on_click=lambda e: print_invitation()),
+                ft.ElevatedButton("🖨️ הדפסה חשבונית", on_click=lambda e: print_invitation(), bgcolor="BLUE",color=ft.Colors.WHITE),
                 ft.ElevatedButton("💾 סגירת ההזמנה" if edit else " שמירת השינויים 💾",
-                                  on_click=lambda e: save_invitation(close=True)),
-                ft.ElevatedButton("💾 שמירת ההזמנה פתוחה", on_click=lambda e: save_invitation(close=False),
-                                  disabled=(not is_editable_items)),
+                                  on_click=lambda e: save_invitation(close=True),bgcolor="#52b79a",color=ft.Colors.WHITE),
+                ft.ElevatedButton("💾 שמירת ההזמנה פתוחה", on_click=lambda e: save_invitation(close=False),bgcolor="#8ecae6",color=ft.Colors.WHITE,disabled=(not is_editable_items)),
                 ft.ElevatedButton(
                     "❌ ביטול ההזמנה",
-                    on_click=lambda e: cancel_invitation(),
+                    on_click=lambda e: cancel_invitation(),bgcolor="DARK_PINK",
+            color=ft.Colors.WHITE,
                     visible=(not is_editable_items)
                 ),
                 ft.ElevatedButton(
-                    "הזמנה ישנה",
+                    "הזמנה ישנה⏱️",bgcolor="#52b69a",
+            color=ft.Colors.WHITE,
                     on_click=lambda e: save_invitation(close=False,old=True),
                 ),
-                ft.ElevatedButton("חזרה", on_click=lambda e: navigator.go_customer(current_user)),
+                ft.ElevatedButton("חזרה⬅️", on_click=lambda e: navigator.go_customer(current_user),bgcolor="#f28c7d",
+            color=ft.Colors.WHITE,),
                 # כפתור חדש – חזרה להזמנות שסופקו, רק אם edit == False
                 ft.ElevatedButton(
                     "📦 חזרה להזמנות שסופקו",
-                    on_click=lambda e: navigator.go_invitations_supply(current_user),
+                    on_click=lambda e: navigator.go_invitations_supply(current_user), bgcolor="#f28c7d",
+            color=ft.Colors.WHITE,
                     visible=(not edit)
                 )
             ], spacing=10)

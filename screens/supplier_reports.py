@@ -37,11 +37,13 @@ def SupplierReportsScreen(page, current_user, navigator):
     # --- כפתורי חזרה ---
     back_suppliers_btn = ft.ElevatedButton(
         "⬅ חזרה לספקים",
-        on_click=lambda e: navigator.go_suppliers(user=current_user)
+        on_click=lambda e: navigator.go_suppliers(user=current_user),bgcolor="#52b69a",
+            color=ft.Colors.WHITE,
     )
     back_home_btn = ft.ElevatedButton(
-        "⬅ חזרה לבית",
-        on_click=lambda e: navigator.go_home(user=current_user)
+        "חזרה לבית🏠",
+        on_click=lambda e: navigator.go_home(user=current_user),bgcolor="#f28c7d",
+            color=ft.Colors.WHITE,
     )
 
     # --- כותרת עליונה ---
@@ -72,8 +74,8 @@ def SupplierReportsScreen(page, current_user, navigator):
                 ft.Column(
                     [
                         title,
-                        ft.Text("אין נתונים עבור הספק או החודש שנבחר", color="red"),
-                        ft.Row([back_suppliers_btn, back_home_btn], alignment=ft.MainAxisAlignment.CENTER)
+                        ft.Text("אין נתונים עבור הספק או החודש שנבחר", color="red")
+
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20,
@@ -107,9 +109,16 @@ def SupplierReportsScreen(page, current_user, navigator):
                 [supplier_dropdown, year_dropdown, month_dropdown,
                  ft.ElevatedButton("📄 ייצוא דוח חודשי PDF", on_click=on_export_pdf, bgcolor="#4d96ff", color="white"),],
                 alignment=ft.MainAxisAlignment.CENTER,
-                spacing=10
-            )
-        )
+
+            ),
+
+        ft.Row(
+            [back_suppliers_btn, back_home_btn],
+        alignment=ft.MainAxisAlignment.CENTER),
+
+        ),
+
+
 
         # --- סה"כ חודשי ---
         monthly_total = 0

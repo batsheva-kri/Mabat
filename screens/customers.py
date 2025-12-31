@@ -260,7 +260,7 @@ def ExistingCustomerScreen(page, user, navigator):
         spacing=10
     )
 
-    back_button = ft.TextButton("⬅️ חזור", on_click=lambda e: navigator.go_orders(user=user))
+    back_button = ft.ElevatedButton("⬅️ חזור להזמנות", on_click=lambda e: navigator.go_orders(user=user),width=140,bgcolor="#52b69a", color= ft.Colors.WHITE)
 
 
     page.controls.clear()
@@ -269,7 +269,8 @@ def ExistingCustomerScreen(page, user, navigator):
             controls=[
                 ft.Text("חיפוש לקוח קיים", size=20, weight=ft.FontWeight.BOLD, color="#52b69a"),
                 search_row,
-                back_button,
+                back_button,ft.ElevatedButton("סיום וחזרה לבית🏠", on_click=lambda e: navigator.go_orders(user),width=140,
+                                  bgcolor="#f28c7d", color=ft.Colors.WHITE),
                 customer_list,
                 ft.Divider(thickness=1),
                 status_dropdown,

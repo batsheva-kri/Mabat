@@ -92,6 +92,29 @@ def DocumentsScreen(page, user, navigator):
         except Exception as e:
             print(f"שגיאה בהדפסה של {file_path.name}: {e}")
 
+    def print_file(file_path: Path):
+        try:
+            # אם זה PDF – רק לפתוח
+            if file_path.suffix.lower() == ".pdf":
+                os.startfile(str(file_path))
+                print(f"PDF נפתח (ללא הדפסה): {file_path.name}")
+                return
+
+            # כל שאר הקבצים – הדפסה רגילה
+            printer_name = win32print.GetDefaultPrinter()
+            win32api.ShellExecute(
+                0,
+                "print",
+                str(file_path),
+                f'/d:"{printer_name}"',
+                ".",
+                0
+            )
+            print(f"הקובץ נשלח להדפסה: {file_path.name}")
+
+        except Exception as e:
+            print(f"שגיאה בפעולת הדפסה/פתיחה של {file_path.name}: {e}")
+
     # --- פונקציה להעלאת קבצים ---
     def on_file_picker_result(e: ft.FilePickerResultEvent):
         if e.files:

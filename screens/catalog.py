@@ -381,7 +381,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                             on_change=lambda e: update_table()),
                 ft.TextField(ref=search_field, label="חיפוש לפי שם או חברה", on_change=lambda e: update_table()),
                 ft.Dropdown(ref=price_sort, label="סדר לפי מחיר",
-                            options=[ft.dropdown.Option("מהנמוך לגבוה"), ft.dropdown.Option("מהגבוה לנמוך")],
+                            options=[ft.dropdown.Option("מהגבוה לנמוך"), ft.dropdown.Option("מהנמוך לגבוה")],
                             on_change=lambda e: update_table())
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
 

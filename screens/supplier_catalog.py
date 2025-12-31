@@ -206,7 +206,7 @@ def SupplierCatalogScreen(page, current_user, navigator):
             delete_entry(entry)
 
     # --- כפתורי ניווט ---
-    back_btn = ft.ElevatedButton("⬅ חזרה", on_click=lambda e: navigator.go_suppliers(user=current_user))
+    back_btn = ft.ElevatedButton("⬅ חזרה", on_click=lambda e: navigator.go_suppliers(user=current_user), bgcolor="#f28c7d", color="white")
     add_btn = ft.ElevatedButton("➕ הוסף מוצר", on_click=add_product_dialog, bgcolor="#52b69a", color="white")
 
     # --- Layout ---

@@ -108,7 +108,8 @@ def OrdersScreen(page, navigator, user):
             controls.append(build_table(closed_orders, is_open=True))
             controls.append(ft.Divider())
 
-        controls.append(ft.ElevatedButton("⬅ חזרה", on_click=lambda e: navigator.go_home(user)))
+        controls.append(ft.ElevatedButton("⬅ חזרה",bgcolor="#f28c7d",
+            color=ft.Colors.WHITE, on_click=lambda e: navigator.go_home(user)))
 
         page.add(ft.ListView(controls=controls, spacing=20, padding=20, auto_scroll=False))
         page.update()

@@ -23,7 +23,7 @@ def EmployeeManagementScreen(page, navigator, user):
     )
 
     def load_employees():
-        employees = run_query("SELECT id, user_name, password_, role FROM users",fetchall=True)
+        employees = run_query("SELECT id, user_name, password_, role FROM users")
         data_table.rows.clear()
 
         for i, emp in enumerate(employees):
@@ -137,7 +137,7 @@ def EmployeeManagementScreen(page, navigator, user):
         message = ft.Text("", color=ft.Colors.RED_700, weight=ft.FontWeight.BOLD)
 
         def save_new(e):
-            existing = run_query("SELECT id FROM users WHERE password_=?", (pass_field.value,), fetchall=True)
+            existing = run_query("SELECT id FROM users WHERE password_=?", (pass_field.value,), )
             if existing:
                 message.value = "סיסמה קיימת"
                 page.update()
