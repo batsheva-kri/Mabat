@@ -62,7 +62,7 @@ def get_order_total(items):
     for pid, total_amount in quantities_by_product.items():
         prices = run_query(
             "SELECT * FROM products WHERE id = ?",
-            (pid,),fetchall=True
+            (pid,),
         )
         if not prices:
             continue

@@ -1,6 +1,7 @@
 import flet as ft
 
 from logic.customers import get_item
+from logic.inventory import get_all_products
 from logic.orders import get_order_by_id, get_invitation_items_by_invitation_id
 from logic.products import get_product_name_by_id
 from logic.suppliers import get_all_suppliers
@@ -164,31 +165,26 @@ def Invitation_supply(navigator, page, current_user):
     # Dropdown שינוי ספק — עכשיו עובד!
     supplier_dropdown.on_change = lambda e: update_open_invitations_table()
     # --- סימון כסופק ---
-    def mark_as_supplied(inv_id):
-        item = get_item(inv_id)
-        if not item:
-            return
-        print("item", item)
-        qty_to_mark = item["quantity"] - item["supplied"]
-        print("qty_to_mark", qty_to_mark)
-        quan = quantity_var.value
-        print("quan", quan)
-        handle_supplied_item(
-            page=page,
-            invitation_id=item["invitation_id"],
-            quantity=quan,
-            customer_invitation_item_id=item["id"],
-            supplier_id=int(supplier_dropdown.value),
-            product_name=get_product_name_by_id(item["product_id"]),
-            quantity_var=quantity_var
-        )
-
-        page.snack_bar.content = ft.Text("הפריט סומן כסופקה!")
-        page.snack_bar.open = True
-        update_open_invitations_table()
-        exist = get_order_by_id(item["invitation_id"])
-        exist["items"] = get_invitation_items_by_invitation_id(item["invitation_id"])
-        navigator.go_new_invitation(user=current_user, c_id=item["customer_id"], existing_invitation= exist,edit=False  )
+    # def mark_as_supplied(inv_id):
+    #     item = get_item(inv_id)
+    #     quan = quantity_var.value
+    #     print("quan", quan)
+    #     handle_supplied_item(
+    #         page=page,
+    #         invitation_id=item["invitation_id"],
+    #         quantity=quan,
+    #         customer_invitation_item_id=item["id"],
+    #         supplier_id=int(supplier_dropdown.value),
+    #         product_name=get_product_name_by_id(item["product_id"]),
+    #         quantity_var=quantity_var
+    #     )
+    #
+    #     page.snack_bar.content = ft.Text("הפריט סומן כסופקה!")
+    #     page.snack_bar.open = True
+    #     update_open_invitations_table()
+    #     exist = get_order_by_id(item["invitation_id"])
+    #     exist["items"] = get_invitation_items_by_invitation_id(item["invitation_id"])
+    #     navigator.go_new_invitation(user=current_user, c_id=item["customer_id"], existing_invitation= exist,edit=False  )
 
     # --- שדות סינון ---
     name_var = ft.TextField(label="שם מוצר", width=150)
@@ -330,6 +326,24 @@ def Invitation_supply(navigator, page, current_user):
         options=[ft.dropdown.Option(str(s["id"]), s["name"]) for s in suppliers],
         width=260
     )
+    products = get_all_products()
+    products_by_name = {p["name"]: p for p in products}
+    product_names = list(products_by_name.keys())
+    suggestions_list = ft.Column()
+
+    def select_product(val: str):
+        name_var.value = val
+        suggestions_list.controls.clear()
+        page.update()
+    def update_suggestions(query: str):
+        suggestions_list.controls.clear()
+        if query:
+            matches = [p for p in product_names if query.lower() in p.lower()]
+            for m in matches:
+                suggestions_list.controls.append(
+                    ft.TextButton(text=m, on_click=lambda e, val=m: select_product(val))
+                )
+        page.update()
 
     # ---------- שדות ----------
     name_var = ft.TextField(label="שם מוצר", width=140)
@@ -338,9 +352,11 @@ def Invitation_supply(navigator, page, current_user):
     angle_var = ft.TextField(label="זווית", width=120)
     color_var = ft.TextField(label="צבע", width=120)
     multifokal_var = ft.TextField(label="מולטיפוקל", width=120)
-    curvature_var = ft.TextField(label="קימור", width=120)
+    curvature_options = ["8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
+    curvature_var = ft.Dropdown(label="קימור", width=120,
+                                options=[ft.dropdown.Option(c, c) for c in curvature_options], )
     quantity_var = ft.TextField(label="כמות", value="1", width=80)
-
+    name_var.on_change = lambda e: (update_suggestions(name_var.value))
     # ---------- עזרי המרה ----------
     def format_number(n):
         if n is None or n == "-":
@@ -453,7 +469,13 @@ def Invitation_supply(navigator, page, current_user):
             )
         )
 
+        page.snack_bar.content = ft.Text("הפריט סומן כסופקה!")
+        page.snack_bar.open = True
         update_open_invitations_table()
+        exist = get_order_by_id(item["invitation_id"])
+        exist["items"] = get_invitation_items_by_invitation_id(item["invitation_id"])
+        navigator.go_new_invitation(user=current_user, c_id=item["customer_id"], existing_invitation= exist,edit=False  )
+
 
     # ---------- הוספת מוצר ידנית ----------
     items = []
@@ -495,7 +517,7 @@ def Invitation_supply(navigator, page, current_user):
                      color_var, multifokal_var, curvature_var, quantity_var],
                     spacing=10
                 ),
-
+                suggestions_list,
                 ft.ElevatedButton("➕ הוסף מוצר", on_click=add_new_product,
                                   bgcolor="#52b69a", color="white"),
 

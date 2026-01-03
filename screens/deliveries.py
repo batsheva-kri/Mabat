@@ -9,7 +9,7 @@ from logic.deliveries import (
     export_range_summary_pdf
 )
 
-from Mabat.logic.deliveries import export_single_pdf_print
+from logic.deliveries import export_single_pdf_print
 
 
 def DeliveriesScreen(page, navigator, user):

@@ -122,15 +122,17 @@ def ExistingCustomerScreen(page, user, navigator):
         }
 
         # --- כפתורים קומפקטיים ---
-        edit_btn = ft.TextButton(
-            "✏️ ערוך" if order["status"] == "open" else "📄 העתק",
+        edit_btn =None
+        if order["status"] == "open":
+            edit_btn = ft.TextButton(
+            "✏️ ערוך" ,
             on_click=lambda e, inv=order: navigator.go_new_invitation(
                 user, cust["id"], existing_invitation=inv, edit=True
             ),
             style=ft.ButtonStyle(padding=0, visual_density=ft.VisualDensity.COMPACT)
         )
-
         view_btn = None
+        copy_btn = None
         if order["status"] != "open":
             view_btn = ft.TextButton(
                 "👁️ כניסה",
@@ -140,9 +142,15 @@ def ExistingCustomerScreen(page, user, navigator):
                 ),
                 style=ft.ButtonStyle(padding=0, visual_density=ft.VisualDensity.COMPACT)
             )
-
+            copy_btn = ft.TextButton(
+                "📄 העתק",
+                on_click=lambda e, inv=order: navigator.go_new_invitation(
+                    user, cust["id"], existing_invitation=inv, edit=True, copy=True
+                ),
+                style=ft.ButtonStyle(padding=0, visual_density=ft.VisualDensity.COMPACT)
+            )
         buttons_row = ft.Row(
-            controls=[edit_btn] + ([view_btn] if view_btn else []),
+            controls=([edit_btn] if edit_btn else []) + ([view_btn] if view_btn else [])+ ([copy_btn] if copy_btn else []),
             alignment=ft.MainAxisAlignment.END,
             spacing=4
         )

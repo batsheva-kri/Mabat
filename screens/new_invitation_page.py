@@ -1,3 +1,6 @@
+from os import close
+from typing import final
+
 import flet as ft
 from logic.customers import get_customer_by_id
 from logic.inventory import get_all_products
@@ -9,7 +12,7 @@ from logic.users import get_all_users
 import datetime
 from temprint import generate_invoice_pdf
 
-def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitation, edit, existing_invitation=None):
+def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitation, edit, existing_invitation=None, copy=False):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
 
     def show_dialog(title, message):
@@ -39,7 +42,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         new_inv = existing_invitation.copy()
         new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
         new_inv["date"] = datetime.datetime.now().isoformat()
-        if existing_invitation.get("status") != "open":
+        if copy:
             new_inv.pop("id", None)
             new_inv["created_by_user_id"] = int(current_user["id"]) if isinstance(current_user, dict) else None
             new_inv["date"] = datetime.datetime.now().isoformat()
@@ -61,6 +64,8 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         customer = get_customer_by_id(customer_id)
         customer = customer[0]
     print("customer",customer)
+    if isinstance(customer, list):
+        customer = customer[0]
     customer_name = customer["name"]
     customer_phone = customer["phone"]
     invitation_status = existing_invitation.get("status") if existing_invitation else "open"
@@ -164,7 +169,6 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         disabled=not is_editable_checkboxes,
         visible=want_shipping_checkbox.value
     )
-
     # מיכל לפרטי משלוח
     def create_delivery_form():
         delivery_name = ft.TextField(label="שם המקבל", width=250 , value=customer_name)
@@ -254,23 +258,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         width=200,
         disabled=not is_editable_items
     )
-    if isinstance(current_user, dict):
-        user_dropdown.value = str(current_user["id"])
-    elif isinstance(current_user, list) and len(current_user) == 1:
-        user_dropdown.value = str(current_user[0]["id"])
-    items = []
-    total_var = ft.Text(f"סה\"כ: 0.00")
-    discount_var = ft.TextField(label="הנחה", width=100, value=str(existing_invitation.get("discount", 0) if existing_invitation else "0"))
-    discount_var.on_change = lambda e: recompute_total()
-    items_list = ft.DataTable(columns=[
-        ft.DataColumn(ft.Text("תיאור")),
-        ft.DataColumn(ft.Text("שם מוצר")),
-        ft.DataColumn(ft.Text("כמות")),
-        ft.DataColumn(ft.Text("מידה")),
-        ft.DataColumn(ft.Text("מחיר יח'")),
-        ft.DataColumn(ft.Text("סה\"כ")),
-        ft.DataColumn(ft.Text("סופק"))  # עמודה חדשה
-    ])
+    products_column = ft.Column(spacing=10)
 
     def collect_current_items():
         """אוסף את הנתונים הנוכחיים מכל השורות ב-products_column ומרכיב את רשימת items מחדש."""
@@ -314,7 +302,37 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         if not items and existing_invitation and existing_invitation.get("items"):
             items.extend(existing_invitation["items"])
         return items
-
+    def bring_discount():
+        collect_current_items()
+        print("items", items)
+        total_price = get_order_total(items)
+        print("total_price", total_price)
+        if existing_invitation:
+            lastPrice = existing_invitation["total_price"]
+            print("last", lastPrice)
+            print("what need to be ...",total_price - lastPrice )
+            existing_invitation["discount"] = total_price - lastPrice
+            total_var.value = f"סה\"כ לאחר חבילות והנחה: {lastPrice:.2f}"
+            page.update()
+    if isinstance(current_user, dict):
+        user_dropdown.value = str(current_user["id"])
+    elif isinstance(current_user, list) and len(current_user) == 1:
+        user_dropdown.value = str(current_user[0]["id"])
+    items = []
+    total_var = ft.Text(f"סה\"כ: 0.00")
+    bring_discount()
+    print("inv", existing_invitation)
+    discount_var = ft.TextField(label="הנחה", width=100, value=str(existing_invitation.get("discount", 0) if existing_invitation else "0"))
+    discount_var.on_change = lambda e: recompute_total()
+    items_list = ft.DataTable(columns=[
+        ft.DataColumn(ft.Text("תיאור")),
+        ft.DataColumn(ft.Text("שם מוצר")),
+        ft.DataColumn(ft.Text("כמות")),
+        ft.DataColumn(ft.Text("מידה")),
+        ft.DataColumn(ft.Text("מחיר יח'")),
+        ft.DataColumn(ft.Text("סה\"כ")),
+        ft.DataColumn(ft.Text("סופק"))  # עמודה חדשה
+    ])
     def recompute_total():
         collect_current_items()
         print("items", items)
@@ -325,11 +343,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         except ValueError:
             discount = 0
         final_total = max(total_price - discount, 0)
+        existing_invitation["discount"] = total_price - discount
         total_var.value = f"סה\"כ לאחר חבילות והנחה: {final_total:.2f}"
         page.update()
-
-    products_column = ft.Column(spacing=10)
-
 
     # טעינת פריטים קיימים (אם יש)
     def create_product_row(label: str, initial_item=None, readonly=False):
@@ -737,6 +753,10 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         order_date, order_time = format_datetime(date)
     else:
         order_date, order_time = format_datetime(datetime.datetime.now().isoformat())
+    isClose = False
+    if existing_invitation and "id" in existing_invitation:
+        isClose = True
+
     # בסיום - כותרת, שדות הצ'קבוקסים והעמודה
     page.controls.clear()
     page.add(
@@ -769,7 +789,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             ft.Row([
                 ft.ElevatedButton("🖨️ הדפסה חשבונית", on_click=lambda e: print_invitation(), bgcolor="BLUE",color=ft.Colors.WHITE),
                 ft.ElevatedButton("💾 סגירת ההזמנה" if edit else " שמירת השינויים 💾",
-                                  on_click=lambda e: save_invitation(close=True),bgcolor="#52b79a",color=ft.Colors.WHITE),
+                                  on_click=lambda e: save_invitation(close=isClose),bgcolor="#52b79a",color=ft.Colors.WHITE),
                 ft.ElevatedButton("💾 שמירת ההזמנה פתוחה", on_click=lambda e: save_invitation(close=False),bgcolor="#8ecae6",color=ft.Colors.WHITE,disabled=(not is_editable_items)),
                 ft.ElevatedButton(
                     "❌ ביטול ההזמנה",

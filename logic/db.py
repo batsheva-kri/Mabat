@@ -10,7 +10,6 @@ os.makedirs(db_dir, exist_ok=True)
 DB_PATH = os.path.join(db_dir, "Mabat_db.db")
 print("Using DB:", DB_PATH)
 assert os.path.exists(DB_PATH), "DB file not found!"
-
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)

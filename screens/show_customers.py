@@ -25,6 +25,10 @@ def CustomersScreen(page, navigator, user):
         expand=True
     )
 
+    def handle_delete_customer(customer_id):
+        delete_customer(customer_id)
+        load_customers()
+
     # --- שליפת לקוחות ---
     def load_customers():
         rows = get_all_customers()
@@ -37,10 +41,11 @@ def CustomersScreen(page, navigator, user):
                     on_click=lambda e, cid=c["id"]: open_customer_dialog(cid)
                 ),
                 ft.IconButton(
-                    icon= ft.Icons.DELETE,
+                    icon=ft.Icons.DELETE,
                     tooltip="מחק",
-                    on_click=lambda e, cid=c["id"]: delete_customer(cid)
+                    on_click=lambda e, cid=c["id"]: handle_delete_customer(cid)
                 )
+
             ])
 
             data_table.rows.append(
@@ -74,6 +79,7 @@ def CustomersScreen(page, navigator, user):
         def close_dialog():
             page.overlay.clear()
             page.update()
+
 
         def save_customer(e):
             update_customer(
@@ -129,6 +135,13 @@ def CustomersScreen(page, navigator, user):
                 on_click=lambda e: navigator.go_home(user),
                 width=120,
                 bgcolor="#f28c7d",
+                color="white"
+            ),
+            ft.ElevatedButton(
+                "לקוח חדש🪪",
+                on_click=lambda e: navigator.go_new_customer(user, invitation=False),
+                width=120,
+                bgcolor="#52b69a",
                 color="white"
             )
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),

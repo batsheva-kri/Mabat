@@ -3,7 +3,7 @@ from logic.customers import add_customer, customer_exists_by_name, customer_exis
     get_customer_by_phone
 
 
-def NewCustomerPage(page, current_user, navigator):
+def NewCustomerPage(page, current_user, navigator, invitation):
     name_var = ft.TextField(label="שם", width=200)
     phone_var = ft.TextField(label="טלפון", width=200)
     phone2_var = ft.TextField(label="טלפון 2", width=200)
@@ -73,11 +73,14 @@ def NewCustomerPage(page, current_user, navigator):
 
             return
         print("new_id", new_id)
-        navigator.go_new_invitation(
+        if invitation:
+            navigator.go_new_invitation(
             user=current_user,
             c_id=new_id,
             is_new_invitation=True
         )
+        else:
+            navigator.go_customers_screen(user=current_user)
 
     page.controls.clear()
     page.add(
@@ -90,8 +93,8 @@ def NewCustomerPage(page, current_user, navigator):
             email_var,
             notes_var,
             ft.Row([
-                ft.ElevatedButton("💾 שמור והמשך להזמנה", on_click=save_customer ,bgcolor="#52b69a", color="white"),
-                ft.ElevatedButton("חזרה⬅️", on_click=lambda e: navigator.go_orders(user=current_user),bgcolor="#f28c7d", color="white",)
+                ft.ElevatedButton("💾 שמור והמשך להזמנה" if invitation else "💾 שמור", on_click=save_customer ,bgcolor="#52b69a", color="white"),
+                ft.ElevatedButton("חזרה⬅️", on_click=lambda e: navigator.go_orders(user=current_user) if invitation else navigator.go_customers_screen(user=current_user) ,bgcolor="#f28c7d", color="white",)
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
         ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
     )

@@ -298,7 +298,8 @@ def auto_save_field(invitation_id, field, value):
 def get_invitation_items_by_invitation_id(customer_invitation_id):
     invitations = run_query("SELECT * FROM  customer_invitation_items WHERE invitation_id =?", (customer_invitation_id,),fetchall=True)
     for inv in invitations:
-        inv["product_name"] = get_product_name_by_id(inv["id"])
+        print("inv",inv)
+        inv["product_name"] = get_product_name_by_id(inv["product_id"])
     print("invitations", invitations)
     return invitations
 def cancel_c_invitation(invitation_id):

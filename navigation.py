@@ -44,8 +44,8 @@ class Navigator:
         SuppliersScreen(self.page, user,self)
     def go_orders(self,user,e=None):
         MainInvitationScreen(self.page, self, current_user=user)
-    def go_new_customer(self,user):
-        NewCustomerPage(self.page, user, self)
+    def go_new_customer(self,user,invitation=True):
+        NewCustomerPage(self.page, user, self,invitation)
     def go_customer(self,user):
         ExistingCustomerScreen(self.page, user, self)
     def go_employee_management(self, user):
@@ -59,8 +59,8 @@ class Navigator:
         CatalogScreen(self.page, self, user, mode)
     def go_deliveries(self, user):
         DeliveriesScreen(self.page, self, user)
-    def go_new_invitation(self,user, c_id,is_new_invitation = False, existing_invitation = None, edit = True):
-        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation)
+    def go_new_invitation(self,user, c_id,is_new_invitation = False, existing_invitation = None, edit = True,copy=False):
+        NewInvitationPage(self, self.page, user,c_id,is_new_invitation, edit, existing_invitation,copy)
     def go_invitations_supply(self,user):
         Invitation_supply(self, self.page, user)
     def go_debts(self, user):
