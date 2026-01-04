@@ -293,25 +293,16 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
         </div>
         """
 
-
-    # <!DOCTYPE html>
-    # <html lang="he" dir="rtl">
-    # <head>
-    #     <meta charset="UTF-8">
-    #     <style>
-    #         body {{ font-family: 'Assistant', Arial, sans-serif; margin:0; padding:0; }}
-    #     </style>
-    # </head>
-    # <body>
-    #     {left_html}
-    #     {right_html}
-    # </body>
-    # </html>
     html_content = f"""
+    <!DOCTYPE html>
+    <html lang="he" dir="rtl">
+    <head>    
     <meta charset="UTF-8">
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant&display=swap');
     body {{
+        direction: rtl;
+        text-align: right;
         font-family: 'Assistant', Arial, sans-serif;
         margin: 20px;
         background-color: #ffffff;
@@ -343,6 +334,7 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
         width: 100%;
         border-collapse: collapse;
         margin-top: 15px;
+        direction: rtl;
     }}
     th, td {{
         border: 1px solid #eee;
@@ -408,14 +400,14 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
 
     <table class="top-info-table">
         <tr>
-            <td style="text-align:right; font-weight:bold;">
+            <td style="font-weight:bold;">
                 <div>לקוח: {customer_name}</div>
                 <div>טלפון: {customer_phone}</div>
                 <div>עובד: {created_by_user_name}</div>
                 <div>תאריך: {existing_invitation.get('date', '').split('T')[0]}</div>
                 <div>שעה: {existing_invitation.get('date', '').split('T')[1][:5] if 'T' in existing_invitation.get('date', '') else ''}</div>
             </td>
-            <td style="text-align:left;">
+            <td>
                 <div class="status-label">{checkbox_html(existing_invitation.get('answered',0))} ענו</div>
                <div>בתאריך: {existing_invitation.get('answering_date', '').split('T')[0] if existing_invitation.get('answering_date') else '___________'}</div>
                 <div class="status-label">{checkbox_html(existing_invitation.get('want_shipping',0))} משלוח</div>
