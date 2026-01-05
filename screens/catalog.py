@@ -180,47 +180,93 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             page.update()
 
         def save_product(ev, pid=pid):
-            cat_name = category_dropdown.value
-            cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,))
-            if not cat:
-                run_action("INSERT INTO categories (name) VALUES (?)", (cat_name,))
-                cat_id = run_query("SELECT last_insert_rowid() AS id")[0]["id"]
-                refresh_category_dropdown()
-            else:
-                cat_id = cat[0]["id"]
+            try:
+                # --- פונקציה להודעות למשתמש ---
+                def show_message(text, success=True):
+                    page.snack_bar = ft.SnackBar(
+                        ft.Text(text),
+                        bgcolor=ft.Colors.GREEN if success else ft.Colors.RED
+                    )
+                    page.snack_bar.open = True
+                    page.update()
 
-            sup_name = supplier_dropdown.value
-            sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,))
-            sup_id = sup[0]["id"] if sup else None
+                # --- בדיקה ושמירת קטגוריה (אם נבחרה) ---
+                cat_name = category_dropdown.value or ""
+                if cat_name.strip():  # אם נבחר שם קטגוריה
+                    cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,))
+                    if not cat:
+                        run_action("INSERT INTO categories (name) VALUES (?)", (cat_name,))
+                        cat_id = run_query("SELECT last_insert_rowid() AS id")[0]["id"]
+                        refresh_category_dropdown()
+                    else:
+                        cat_id = cat[0]["id"]
+                else:
+                    cat_id = None  # אין קטגוריה, נשמר כ-NULL
 
-            status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
-            image_path = selected_image.value if selected_image.value != "-" else None
+                # --- בדיקה ושמירת ספק ---
+                sup_name = supplier_dropdown.value
+                sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,))
+                sup_id = sup[0]["id"] if sup else None
 
-            if pid:
-                run_action("""
-                     UPDATE products
-                     SET name=?, company=?, image_path=?, category_id=?, status=?, information=?,
-                         preferred_supplier_id=?, price=?, price_3=?, price_12=?
-                     WHERE id=?
-                 """, (
-                    name_field.value, company_field.value, image_path, cat_id, status_value, info_field.value,
-                    sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
-                     float(price_12_field.value or 0), pid
-                ))
-            else:
-                run_action("""
-                     INSERT INTO products (name, company, image_path, category_id, status, information,
-                                           preferred_supplier_id, price, price_3, price_12)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                 """, (
-                    name_field.value, company_field.value, image_path, cat_id, status_value, info_field.value,
-                    sup_id, float(price_field.value or 0), float(price_3_field.value or 0),
-                     float(price_12_field.value or 0)
-                ))
+                # --- בדיקה והמרה של מחירים ---
+                try:
+                    price_value = float(price_field.value or 0)
+                except ValueError:
+                    show_message("❌ המחיר חייב להיות מספר תקני", success=False)
+                    return
 
-            close_dialog()
-            update_table()
+                try:
+                    price_3_value = float(price_3_field.value or 0)
+                except ValueError:
+                    show_message("❌ המחיר ל-3 חודשים חייב להיות מספר תקני", success=False)
+                    return
 
+                try:
+                    price_12_value = float(price_12_field.value or 0)
+                except ValueError:
+                    show_message("❌ המחיר ל-12 חודשים חייב להיות מספר תקני", success=False)
+                    return
+
+                # --- סטטוס מוצר ---
+                status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
+
+                # --- תמונה ---
+                image_path = selected_image.value if selected_image.value != "-" else None
+
+                # --- שמירה למסד ---
+                if pid:  # עדכון מוצר קיים
+                    run_action("""
+                        UPDATE products
+                        SET name=?, company=?, image_path=?, category_id=?, status=?, information=?,
+                            preferred_supplier_id=?, price=?, price_3=?, price_12=?
+                        WHERE id=?
+                    """, (
+                        name_field.value, company_field.value, image_path, cat_id, status_value,
+                        info_field.value, sup_id, price_value, price_3_value, price_12_value, pid
+                    ))
+                    show_message("✅ המוצר עודכן בהצלחה!", success=True)
+                else:  # הוספת מוצר חדש
+                    run_action("""
+                        INSERT INTO products (name, company, image_path, category_id, status, information,
+                                              preferred_supplier_id, price, price_3, price_12)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        name_field.value, company_field.value, image_path, cat_id, status_value,
+                        info_field.value, sup_id, price_value, price_3_value, price_12_value
+                    ))
+                    show_message("✅ המוצר נוסף בהצלחה!", success=True)
+
+                # --- סגירה ועדכון טבלה ---
+                close_dialog()
+                update_table()
+
+            except Exception as e:
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(f"❌ קרתה שגיאה בהוספת/עדכון מוצר: {e}"),
+                    bgcolor=ft.Colors.RED
+                )
+                page.snack_bar.open = True
+                page.update()
         dlg_content = ft.Container(
             content=ft.Column([
                 name_field, company_field,
