@@ -25,8 +25,8 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             ft.DataColumn(ft.Text("תמונה", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("קטגוריה", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("מחיר", size=18, weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("מחיר 3 ח'", size=18, weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(ft.Text("מחיר 12 ח'", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("מחיר 6 יחידות", size=18, weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("מחיר 24 יחידות", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("סטטוס", size=18, weight=ft.FontWeight.BOLD)),
             ft.DataColumn(ft.Text("פעולות", size=18, weight=ft.FontWeight.BOLD)),
         ],
@@ -133,7 +133,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             status_val = product["status"]
             price_val = product["price"]
             p3_val = product["price_3"]
-
             p12_val = product["price_12"]
             info_val = product["information"]
             sup_val = None
@@ -141,12 +140,14 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 sup_query = run_query("SELECT name FROM suppliers WHERE id=?", (product["preferred_supplier_id"],))
                 if sup_query:
                     sup_val = sup_query[0]["name"]
+            free_pair_val = bool(product.get("free_pair", 0))
         else:
             name_val = company_val = image_val = cat_val = status_val = info_val = sup_val = None
-            price_val = p3_val  = p12_val = 0
+            price_val = p3_val = p12_val = 0
+            free_pair_val = False
 
-        name_field = ft.TextField(label="שם מוצר", value=name_val)
-        company_field = ft.TextField(label="חברה", value=company_val)
+        name_field = ft.TextField(label="שם מוצר", value=name_val, width=300)
+        company_field = ft.TextField(label="חברה", value=company_val, width=300)
         selected_image = ft.Text(value=image_val or "-", size=12)
 
         def pick_image_result(e: ft.FilePickerResultEvent):
@@ -161,19 +162,36 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         file_picker.on_result = pick_image_result
         pick_button = ft.ElevatedButton("בחר תמונה", on_click=lambda e: pick_image())
 
-        category_dropdown = ft.Dropdown(label="קטגוריה", options=categories, value=cat_val, width=200)
+        category_dropdown = ft.Dropdown(label="קטגוריה", options=categories, value=cat_val, width=300)
         status_dropdown = ft.Dropdown(
             label="סטטוס",
             options=[ft.dropdown.Option("מלאי"), ft.dropdown.Option("הזמנות")],
             value="מלאי" if (status_val == "inventory" or mode == "inventory") else "הזמנות",
-            width=200
+            width=300
         )
-        price_field = ft.TextField(label="מחיר", value=str(price_val))
-        price_3_field = ft.TextField(label="מחיר 3 חודשים", value=str(p3_val))
-
-        price_12_field = ft.TextField(label="מחיר 12 חודשים", value=str(p12_val))
+        price_field = ft.TextField(label="מחיר", value=str(price_val), width=300)
+        price_3_field = ft.TextField(label="מחיר 6 יחידות", value=str(p3_val), width=300)
+        price_12_field = ft.TextField(label="מחיר 24 יחידות", value=str(p12_val), width=300)
         info_field = ft.TextField(label="מידע נוסף", multiline=True, width=300, value=info_val)
-        supplier_dropdown = ft.Dropdown(label="ספק מועדף", options=suppliers, value=sup_val, width=200)
+        supplier_dropdown = ft.Dropdown(label="ספק מועדף", options=suppliers, value=sup_val, width=300)
+        free_pair_checkbox = ft.Checkbox(
+            label="זוג חינם בקניית 12 יחידות",
+            value=free_pair_val
+        )
+
+        # --- שינוי תוויות לפי קטגוריה ---
+        def update_price_labels(e=None):
+            cat_name = category_dropdown.value or ""
+            if "יומיות" in cat_name:
+                price_3_field.label = "מחיר 30 יחידות"
+                price_12_field.label = "מחיר 90 יחידות"
+            else:
+                price_3_field.label = "מחיר 6 יחידות"
+                price_12_field.label = "מחיר 24 יחידות"
+            page.update()
+
+        category_dropdown.on_change = update_price_labels
+        update_price_labels()  # הגדרת תוויות ראשונית
 
         def close_dialog():
             page.overlay.clear()
@@ -181,7 +199,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
 
         def save_product(ev, pid=pid):
             try:
-                # --- פונקציה להודעות למשתמש ---
                 def show_message(text, success=True):
                     page.snack_bar = ft.SnackBar(
                         ft.Text(text),
@@ -190,9 +207,8 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                     page.snack_bar.open = True
                     page.update()
 
-                # --- בדיקה ושמירת קטגוריה (אם נבחרה) ---
                 cat_name = category_dropdown.value or ""
-                if cat_name.strip():  # אם נבחר שם קטגוריה
+                if cat_name.strip():
                     cat = run_query("SELECT id FROM categories WHERE name=?", (cat_name,))
                     if not cat:
                         run_action("INSERT INTO categories (name) VALUES (?)", (cat_name,))
@@ -201,62 +217,48 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                     else:
                         cat_id = cat[0]["id"]
                 else:
-                    cat_id = None  # אין קטגוריה, נשמר כ-NULL
+                    cat_id = None
 
-                # --- בדיקה ושמירת ספק ---
                 sup_name = supplier_dropdown.value
                 sup = run_query("SELECT id FROM suppliers WHERE name=?", (sup_name,))
                 sup_id = sup[0]["id"] if sup else None
 
-                # --- בדיקה והמרה של מחירים ---
                 try:
                     price_value = float(price_field.value or 0)
-                except ValueError:
-                    show_message("❌ המחיר חייב להיות מספר תקני", success=False)
-                    return
-
-                try:
                     price_3_value = float(price_3_field.value or 0)
-                except ValueError:
-                    show_message("❌ המחיר ל-3 חודשים חייב להיות מספר תקני", success=False)
-                    return
-
-                try:
                     price_12_value = float(price_12_field.value or 0)
                 except ValueError:
-                    show_message("❌ המחיר ל-12 חודשים חייב להיות מספר תקני", success=False)
+                    show_message("❌ כל המחירים חייבים להיות מספר תקני", success=False)
                     return
 
-                # --- סטטוס מוצר ---
                 status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
-
-                # --- תמונה ---
                 image_path = selected_image.value if selected_image.value != "-" else None
+                free_pair_value = 1 if free_pair_checkbox.value else 0
 
-                # --- שמירה למסד ---
-                if pid:  # עדכון מוצר קיים
+                if pid:
                     run_action("""
                         UPDATE products
                         SET name=?, company=?, image_path=?, category_id=?, status=?, information=?,
-                            preferred_supplier_id=?, price=?, price_3=?, price_12=?
+                            preferred_supplier_id=?, price=?, price_3=?, price_12=?, free_pair=?
                         WHERE id=?
                     """, (
                         name_field.value, company_field.value, image_path, cat_id, status_value,
-                        info_field.value, sup_id, price_value, price_3_value, price_12_value, pid
+                        info_field.value, sup_id, price_value, price_3_value, price_12_value,
+                        free_pair_value, pid
                     ))
-                    show_message("✅ המוצר עודכן בהצלחה!", success=True)
-                else:  # הוספת מוצר חדש
+                    show_message("✅ המוצר עודכן בהצלחה!")
+                else:
                     run_action("""
                         INSERT INTO products (name, company, image_path, category_id, status, information,
-                                              preferred_supplier_id, price, price_3, price_12)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                              preferred_supplier_id, price, price_3, price_12, free_pair)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         name_field.value, company_field.value, image_path, cat_id, status_value,
-                        info_field.value, sup_id, price_value, price_3_value, price_12_value
+                        info_field.value, sup_id, price_value, price_3_value, price_12_value,
+                        free_pair_value
                     ))
-                    show_message("✅ המוצר נוסף בהצלחה!", success=True)
+                    show_message("✅ המוצר נוסף בהצלחה!")
 
-                # --- סגירה ועדכון טבלה ---
                 close_dialog()
                 update_table()
 
@@ -267,15 +269,24 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 )
                 page.snack_bar.open = True
                 page.update()
+
         dlg_content = ft.Container(
-            content=ft.Column([
-                name_field, company_field,
-                ft.Row([pick_button, selected_image]),
-                category_dropdown, status_dropdown,
-                price_field, price_3_field, price_12_field,
-                info_field, supplier_dropdown
-            ], spacing=10, scroll=ft.ScrollMode.AUTO),
-            height=400
+            content=ft.Column(
+                [
+                    name_field, company_field,
+                    ft.Row([pick_button, selected_image], alignment=ft.MainAxisAlignment.CENTER),
+                    category_dropdown, status_dropdown,
+                    price_field, price_3_field, price_12_field,
+                    info_field, supplier_dropdown,
+                    ft.Row([free_pair_checkbox], alignment=ft.MainAxisAlignment.CENTER)
+                ],
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO,
+                alignment=ft.MainAxisAlignment.CENTER,  # <-- מרכז את השדות אנכית
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # <-- מרכז אופקית
+                expand=True
+            ),
+            expand=True
         )
 
         page.overlay.clear()
@@ -288,8 +299,9 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                         ft.ElevatedButton("שמור", on_click=save_product, bgcolor="#52b69a", color="white"),
                         ft.ElevatedButton("ביטול", on_click=lambda e: close_dialog(), bgcolor="#f28c7d", color="white"),
                     ], alignment=ft.MainAxisAlignment.CENTER, spacing=12)
-                ], spacing=15),
-                padding=20, bgcolor="#ffffff", border_radius=14
+                ], spacing=15, expand=True),
+                padding=20, bgcolor="#ffffff", border_radius=14,
+                expand=True
             )
         )
         page.update()

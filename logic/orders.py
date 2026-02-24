@@ -8,6 +8,7 @@ def get_order_by_id(customer_invitation_id):
     return run_query("SELECT * FROM  customer_invitations WHERE id =?",(customer_invitation_id,),fetchone=True)
 def new_invitation(header: dict ,items: list[dict]):
     invitation_id = create_invitation(header)
+    print("invitation_id", invitation_id)
     add_invitation_items(invitation_id, items)
     return invitation_id
 def create_invitation(header: dict):

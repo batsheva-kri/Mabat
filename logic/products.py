@@ -11,11 +11,13 @@ def get_all_products_for_invitation():
     return res
 
 def get_catalog_prices(product_id, amount):
-    print("I am hear👋👋")
+    print("I am in calculate catalog prices")
+    print("product_id", product_id)
+    print("amount", amount)
     query = """
-    SELECT price, price_3, price_6, price_12, preferred_supplier_id
-    FROM products
-    WHERE id = ?
+    SELECT c.name, price, price_3, price_6, price_12, preferred_supplier_id, free_pair
+    FROM products p join categories c on category_id = c.id
+    WHERE p.id = ?
     """
     row = run_query(query, (product_id,),fetchone=True)
     print("row",row)
@@ -24,22 +26,37 @@ def get_catalog_prices(product_id, amount):
     print("row",row)
     prices = dict(row)
     price = prices.get("price")
+    name = prices.get("name")
     price_3 = prices.get("price_3") or price * 6      # 3 זוגות = 6 יחידות
     price_6 = prices.get("price_6") or price * 12     # 6 זוגות = 12 יחידות
     price_12 = prices.get("price_12") or price * 24   # 12 זוגות = 24 יחידות
-
-    # פונקציה לחישוב מחיר לפי חבילות
-    total = calculate_total_price(amount, price, price_3, price_6, price_12)
+    free_pair = prices.get("free_pair") or False
+    if free_pair and amount == 13:
+        amount = 12
+    if "יומיות" in name:
+        total = calculate_day_total_price(amount, price, price_3, price_12)
+    else:
+        # פונקציה לחישוב מחיר לפי חבילות
+        total = calculate_month_total_price(amount, price, price_3, price_6, price_12)
     print("prices",prices)
     print("total", total)
     return {
         "unit_prices": prices,
         "total": total
     }
-def calculate_total_price(amount, price, price_3, price_6, price_12):
+def calculate_month_total_price(amount, price, price_3, price_6, price_12):
     total = 0
     remaining = amount
     for pack_size, pack_price in [(24, price_12), (12, price_6), (6, price_3), (1, price)]:
+        if remaining >= pack_size:
+            n_packs = remaining // pack_size
+            total += n_packs * pack_price
+            remaining -= n_packs * pack_size
+    return total
+def calculate_day_total_price(amount, price, price_3, price_12):
+    total = 0
+    remaining = amount
+    for pack_size, pack_price in [(90, price_12), (30, price_3), (1, price)]:
         if remaining >= pack_size:
             n_packs = remaining // pack_size
             total += n_packs * pack_price
@@ -61,7 +78,7 @@ def get_order_total(items):
     total = 0
     for pid, total_amount in quantities_by_product.items():
         prices = run_query(
-            "SELECT * FROM products WHERE id = ?",
+            "SELECT p.*, c.name as category_name FROM products p join categories c on p.category_id = c.id WHERE p.id = ?",
             (pid,),
         )
         if not prices:
@@ -71,13 +88,20 @@ def get_order_total(items):
         price_3 = prices[0].get("price_3") or price * 6
         price_6 = prices[0].get("price_6") or price * 12
         price_12 = prices[0].get("price_12") or price * 24
+        name = prices[0].get("category_name")
+        free_pair = prices[0].get("free_pair") or False
         print("price", price)
         print("price_3", price)
         print("price_6", price)
         print("price_12", price)
         print("total_amount", total_amount)
-        # שימוש בפונקציה לחישוב לפי חבילות
-        total += calculate_total_price(total_amount, price, price_3, price_6, price_12)
+        if free_pair and total_amount == 13:
+            total_amount = 12
+        if "יומיות" in name:
+            total +=calculate_day_total_price(total_amount,price, price_3, price_12)
+        else:
+            # שימוש בפונקציה לחישוב לפי חבילות
+            total += calculate_month_total_price(total_amount, price, price_3, price_6, price_12)
         print("total", total)
     return total
 

@@ -10,6 +10,8 @@ from logic.products import get_catalog_prices, get_product_name_by_id, get_order
 from logic.suppliers import get_all_suppliers, create_supplier_invitations, cancel_s_invitation
 from logic.users import get_all_users
 import datetime
+
+from printing import print_pdf_async
 from temprint import generate_invoice_pdf
 
 def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitation, edit, existing_invitation=None, copy=False):
@@ -55,7 +57,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
 
     # שליפת נתונים
     products = get_all_products()
-    products_by_name = {p["name"]: p for p in products}
+    products_by_name = {p["name"].strip(): p for p in products}
     product_names = list(products_by_name.keys())
     users = get_all_users()
     if existing_invitation:
@@ -307,7 +309,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         print("items", items)
         total_price = get_order_total(items)
         print("total_price", total_price)
-        if existing_invitation:
+        if existing_invitation is not None:
             lastPrice = existing_invitation["total_price"]
             print("last", lastPrice)
             print("what need to be ...",total_price - lastPrice )
@@ -343,7 +345,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         except ValueError:
             discount = 0
         final_total = max(total_price - discount, 0)
-        existing_invitation["discount"] = total_price - discount
+        if existing_invitation is not None:
+            existing_invitation["discount"] = total_price - discount
+
         total_var.value = f"סה\"כ לאחר חבילות והנחה: {final_total:.2f}"
         page.update()
 
@@ -356,50 +360,105 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
 
         name_var = ft.TextField(
             label="מוצר", width=250,
-            value=initial_item.get("product_name", "") if initial_item else "", disabled=readonly
+            value=initial_item.get("product_name", ""), disabled=readonly
         )
         quantity_var = ft.TextField(
             label="כמות", width=80,
-            value=str(initial_item.get("quantity", 1)) if initial_item else "1",
+            value=str(initial_item.get("quantity", 1)),
             disabled=readonly
         )
         size_var = ft.TextField(
-            label="מידה", width=80, value=initial_item.get("size", "") if initial_item else "",
+            label="מידה", width=80, value=initial_item.get("size", ""),
             text_align=ft.TextAlign.RIGHT, disabled=readonly
-
         )
         cyl_var = ft.TextField(
-            label="צילינדר", width=80, value=initial_item.get("cyl", "") if initial_item else "",
+            label="צילינדר", width=80, value=initial_item.get("cyl", ""),
             text_align=ft.TextAlign.RIGHT, disabled=readonly
-
         )
         ax_var = ft.TextField(
-            label="זווית", width=80, value=initial_item.get("ax", "") if initial_item else "",
+            label="זווית", width=80, value=initial_item.get("ax", ""),
             text_align=ft.TextAlign.RIGHT, disabled=readonly
-
         )
 
         suggestions_list = ft.Column()
         supplier_var = ft.Dropdown(width=200, options=[], value=None, disabled=readonly)
         price_text = ft.Text("מחיר יח': 0.00  | סה\"כ: 0.00")  # הצגת מחיר בשורה
 
+        if initial_item:
+            unit_price = initial_item.get("unit_price", 0)
+            line_total = initial_item.get("line_total", unit_price * initial_item.get("quantity", 1))
+            price_text.value = f"מחיר יח': {unit_price:.2f}  | סה\"כ: {line_total:.2f}"
+
         def update_supplier_dropdown(product_id=None):
             suppliers = get_all_suppliers()
             supplier_var.options = [ft.dropdown.Option(str(s["id"]), s["name"]) for s in suppliers]
-            if initial_item and initial_item.get("supplier_id"):
+            if initial_item.get("supplier_id"):
                 supplier_var.value = str(initial_item["supplier_id"])
-            else:
-                product = products_by_name.get(name_var.value)
-                if product:
-                    preferred_supplier_id = product.get("preferred_supplier_id")
-                    if preferred_supplier_id:
-                        supplier_var.value = str(preferred_supplier_id)
-                    elif suppliers:
-                        supplier_var.value = str(suppliers[0]["id"])
+            elif product_id:
+                preferred_supplier_id = products_by_name.get(name_var.value, {}).get("preferred_supplier_id")
+                if preferred_supplier_id:
+                    supplier_var.value = str(preferred_supplier_id)
+            elif suppliers:
+                supplier_var.value = str(suppliers[0]["id"])
             page.update()
 
         if initial_item:
             update_supplier_dropdown(initial_item.get("product_id"))
+
+        def update_price(e=None):
+            name = name_var.value.strip()
+            try:
+                quantity = int(quantity_var.value or 1)
+            except ValueError:
+                quantity = 1
+            size_full = f"{size_var.value.strip()} {cyl_var.value.strip()} {ax_var.value.strip()}"
+            print("All products:", list(products_by_name.keys()))
+
+            print("Selected product:", name, "Exists in products_by_name?", name in products_by_name)
+            if name in products_by_name:
+                product = products_by_name[name]
+                prices = get_catalog_prices(product["id"], quantity)
+                print("Prices returned:", prices)
+                if prices:
+                    unit_price = float(prices["unit_prices"]["price"])
+                    line_total = float(prices["total"])
+                else:
+                    unit_price = 0
+                    line_total = 0
+                price_text.value = f"מחיר יח': {unit_price:.2f}  | סה\"כ: {line_total:.2f}"
+
+                # עדכון או הוספה ב-items
+                idx = initial_item["row_id"]
+                item_data = {
+                    "label": label,
+                    "product_name": name,
+                    "quantity": quantity,
+                    "size": size_full,
+                    "unit_price": unit_price,
+                    "line_total": line_total,
+                    "supplier_id": int(supplier_var.value) if supplier_var.value else None,
+                    "supplied": 0,
+                    "row_id": idx
+                }
+
+                if idx < len(items):
+                    items[idx].update(item_data)
+                else:
+                    items.append(item_data)
+                    initial_item["row_id"] = len(items) - 1
+
+            else:
+                price_text.value = "מחיר יח': 0.00  | סה\"כ: 0.00"
+
+            recompute_total()
+            page.update()
+
+        def select_product(val: str):
+            name_var.value = val
+            suggestions_list.controls.clear()
+            update_supplier_dropdown(products_by_name[val]["id"])
+            update_price()  # חובה כאן כדי לעדכן מיידית
+            page.update()
 
         def update_suggestions(query: str):
             suggestions_list.controls.clear()
@@ -411,67 +470,11 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                     )
             page.update()
 
-        def select_product(val: str):
-            name_var.value = val
-            suggestions_list.controls.clear()
-            product = products_by_name[val]
-            update_supplier_dropdown(product["id"])
-            update_price()
-            page.update()
-
-        def update_price(e=None):
-            name = name_var.value.strip()
-            try:
-                quantity = int(quantity_var.value or 1)
-            except ValueError:
-                quantity = 1
-            cyl = cyl_var.value.strip()
-            ax = ax_var.value.strip()
-            size1 = size_var.value.strip()
-            size = f"{size1} {cyl} {ax}"
-            if name in products_by_name:
-                product = products_by_name[name]
-                prices = get_catalog_prices(product["id"], quantity)
-                print("prices", prices)
-                unit_price = float(prices["unit_prices"]["price"])
-                line_total = float(prices["total"])
-                price_text.value = f"מחיר יח': {unit_price:.2f}  | סה\"כ: {line_total:.2f}"
-
-                # עדכון או הוספה ב-items (הלוגיקה נשארת כפי שתיקנת אותה)
-                item_data = {
-                    "label": label,
-                    "product_name": name,
-                    "quantity": quantity,
-                    "size": size,
-                    "unit_price": unit_price,
-                    "line_total": line_total,
-                    "supplier_id": None,  # יטופל בהמשך או בשמירה
-                    "supplied": 0,
-                    # שמירת ה-row_id לצורך עדכונים חוזרים
-                    "row_id": initial_item["row_id"]
-                }
-
-                # עדכון או הוספה ב-items
-                idx = initial_item["row_id"]
-
-                # בדיקה אם האינדקס קיים: אם הוא קטן מהאורך הנוכחי של הרשימה, נאפשר עדכון.
-                if idx < len(items):
-                    items[idx].update(item_data)  # עדכן פריט קיים
-                else:
-                    # האינדקס אינו קיים (זהו פריט חדש שנוסף זה עתה ל-products_column) - יש להוסיף אותו.
-                    items.append(item_data)
-                    # עדכן את ה-row_id במילון ה-initial_item כך שיצביע על האינדקס החדש (במקרה של הוספת מוצר נוסף)
-                    initial_item["row_id"] = len(items) - 1
-
-            else:
-                price_text.value = "מחיר יח': 0.00  | סה\"כ: 0.00"  # עדכון מחיר ל-0 אם שם המוצר לא קיים
-
-            # 💡 הוספת הקריאה החסרה!
-            recompute_total()
-            page.update()
-
         name_var.on_change = lambda e: (update_suggestions(name_var.value), update_price())
         quantity_var.on_change = update_price
+        size_var.on_change = update_price
+        cyl_var.on_change = update_price
+        ax_var.on_change = update_price
 
         row_container = ft.Column([
             ft.Text(label, weight=ft.FontWeight.BOLD),
@@ -576,10 +579,12 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             "color": color_field.value or None,
             "multifocal": multifocal_field.value or None
         }
-        if existing_invitation and close:
+        print("existing_invitation",existing_invitation)
+        print('close', close)
+        if existing_invitation and not close:
             invitation_id = existing_invitation["id"]
             if not edit:
-                header["_date"] = existing_invitation["date"]
+                header["_date"] = existing_invitation["date_"]
             update_invitation(invitation_id, header)
             # רק אם ההזמנה הייתה פתוחה נעדכן ונחליף את הפריטים
             if is_editable_items:
@@ -608,9 +613,13 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             print("header",header)
             print("items",items)
             invitation_id = new_invitation(header,items)
-
+            print("after saving a new invitation: ", invitation_id)
+            print("close ", close)
+            print("is_editable_items ", is_editable_items)
         # אם נבחר close וזו הזמנה פתוחה/שנוצרה עכשיו - יצירת הזמנות לספקים כמו קודם
+        print("is_editable_items", is_editable_items)
         if close and is_editable_items:
+            print("close and is_editable_items")
             supplier_items_map = {}
             for it in items:
                 supplier_id = it.get("supplier_id") or products_by_name[it["product_name"]].get("preferred_supplier_id")
@@ -635,7 +644,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                         items=items_for_fn,
                         notes=""
                     )
-
+                print("invented")
             except Exception as e:
                 # כתיבה לגוגל שיט נכשלה
                 print(""
@@ -723,7 +732,7 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
             created_by_user_name=current_user["user_name"],
             delivery_data=delivery_data
         )
-
+        print_pdf_async(pdf_file)
         page.snack_bar = ft.SnackBar(ft.Text(f"PDF נוצר בהצלחה בשם {pdf_file}"), bgcolor=ft.Colors.GREEN)
         page.snack_bar.open = True
         page.update()
@@ -753,9 +762,9 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
         order_date, order_time = format_datetime(date)
     else:
         order_date, order_time = format_datetime(datetime.datetime.now().isoformat())
-    isClose = False
-    if existing_invitation and "id" in existing_invitation:
-        isClose = True
+    isClose = True
+    if existing_invitation and "id" in existing_invitation and not existing_invitation["status"] == "open":
+        isClose = False
 
     # בסיום - כותרת, שדות הצ'קבוקסים והעמודה
     page.controls.clear()
@@ -775,13 +784,12 @@ def NewInvitationPage(navigator, page, current_user, customer_id, is_new_invitat
                         size=22, weight=ft.FontWeight.BOLD),
                 ft.IconButton(icon=ft.Icons.ARROW_FORWARD, on_click=go_next_order, tooltip="הזמנה הבאה"),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Row([answered_checkbox, collected_checkbox, want_shipping_checkbox, shipped_checkbox], spacing=20),
             delivery_details_container,
-            ft.Row([curvature_dropdown, prescription_dropdown], spacing=20),
-            multifocal_field,
-            color_field,
+            ft.Row([curvature_dropdown, prescription_dropdown, multifocal_field,color_field,user_dropdown,
+                    ft.Row([answered_checkbox, collected_checkbox, want_shipping_checkbox, shipped_checkbox],
+                           spacing=20)
+                    ], spacing=20),
             notes_field,
-            user_dropdown,
             products_column,
             extra_button,
             items_list,

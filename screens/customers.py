@@ -184,13 +184,6 @@ def ExistingCustomerScreen(page, user, navigator):
         orders = sorted(orders, key=lambda o: o["date"], reverse=True)
         if selected_status != "all":
             orders = [o for o in orders if o["status"] == selected_status]
-        orders_column.controls.append(
-            ft.TextButton(
-                "➕ הזמנה חדשה",
-                on_click=lambda e: navigator.go_new_invitation(user, cust["id"], is_new_invitation=True),
-                style=ft.ButtonStyle(padding=0, visual_density=ft.VisualDensity.COMPACT)
-            )
-        )
         if not orders:
             orders_column.controls.append(ft.Text("אין הזמנות ללקוח זה"))
         else:
@@ -215,18 +208,72 @@ def ExistingCustomerScreen(page, user, navigator):
                         orders_column.controls.append(build_order_card(cust, order))
             page.update()
 
+    new_order_button = ft.TextButton(
+        "➕ הזמנה חדשה",
+        on_click=lambda e: navigator.go_new_invitation(user, current_customer["id"] if current_customer else None,
+                                                       is_new_invitation=True),
+        style=ft.ButtonStyle(padding=0, visual_density=ft.VisualDensity.COMPACT)
+    )
+
     def select_customer(cust):
         nonlocal current_customer
         current_customer = cust
+
+        # מסתירים את הרשימה במקום להסיר אותה
+        customer_list.visible = False
+
+        # מציגים את כרטיס הלקוח במקום קבוע
+        if not hasattr(page, "customer_info_card"):
+            page.customer_info_card = ft.Container(
+                content=ft.Column([
+                    ft.Text("", size=16, weight=ft.FontWeight.BOLD),  # שם
+                    ft.Text("", size=14),  # טלפון
+                ]),
+                padding=10,
+                border_radius=8,
+                bgcolor="#f0f0f0",
+            )
+            page.customer_info_card.is_customer_info_card = True
+            page.controls[0].controls.insert(3, page.customer_info_card)
+
+        # מעדכנים את הטקסט בכרטיס
+        page.customer_info_card.content.controls[0].value = f"שם לקוח: {cust['name']}"
+        page.customer_info_card.content.controls[1].value = f"טלפון: {cust['phone']}"
+        page.customer_info_card.visible = True
+
+        # מציגים את כפתור ההזמנה
+        new_order_button.visible = True
+
+        page.update()
         show_orders(cust, selected_status=status_filter.current.value)
 
     def perform_search():
+        nonlocal current_customer
+
+        if current_customer:
+            current_customer = None
+
+            # מסתירים את כרטיס הלקוח
+            if hasattr(page, "customer_info_card"):
+                page.customer_info_card.visible = False
+
+            # מחזירים את הרשימה לגלוי
+            customer_list.visible = True
+
+            # מסתירים את כפתור ההזמנה
+            new_order_button.visible = False
+
+            # מוודאים שתיבות החיפוש והמסר גלויים
+            name_field.visible = True
+            phone_field.visible = True
+            message.visible = True
+
+        # מנקים את השורות וההזמנות
         customer_list.rows.clear()
         orders_column.controls.clear()
         name = name_field.value.strip()
         phone = phone_field.value.strip()
 
-        # --- מצב: אין שם ואין טלפון, מציגים את כל ההזמנות האחרונות ---
         if not name and not phone:
             latest_orders = get_latest_orders()
             if not latest_orders:
@@ -237,7 +284,6 @@ def ExistingCustomerScreen(page, user, navigator):
                     orders_column.controls.append(build_order_card(cust, order))
             page.update()
             return
-
 
         customers = []
         if name:
@@ -260,13 +306,22 @@ def ExistingCustomerScreen(page, user, navigator):
                     on_select_changed=lambda e, c=cust: select_customer(c)
                 )
             )
+
+        # לא מסירים את ה-DataTable – הוא תמיד קיים, רק מוצג או מוסתר
         customer_list.update()
 
+    # שורה של חיפוש + כפתור הזמנה חדשה
     search_row = ft.Row(
-        controls=[name_field, phone_field, message],
+        controls=[
+            name_field,
+            phone_field,
+            message,
+            new_order_button  # הכפתור כבר חלק מהשורה
+        ],
         alignment=ft.MainAxisAlignment.START,
         spacing=10
     )
+    new_order_button.visible = False  # מסתירים בהתחלה
 
     back_button = ft.ElevatedButton("⬅️ חזור להזמנות", on_click=lambda e: navigator.go_orders(user=user),width=140,bgcolor="#52b69a", color= ft.Colors.WHITE)
 
@@ -277,7 +332,7 @@ def ExistingCustomerScreen(page, user, navigator):
             controls=[
                 ft.Text("חיפוש לקוח קיים", size=20, weight=ft.FontWeight.BOLD, color="#52b69a"),
                 search_row,
-                back_button,ft.ElevatedButton("סיום וחזרה לבית🏠", on_click=lambda e: navigator.go_orders(user),width=140,
+                back_button,ft.ElevatedButton("סיום וחזרה לבית🏠", on_click=lambda e: navigator.go_home(user),width=140,
                                   bgcolor="#f28c7d", color=ft.Colors.WHITE),
                 customer_list,
                 ft.Divider(thickness=1),

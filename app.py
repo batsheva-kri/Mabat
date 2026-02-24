@@ -3,6 +3,8 @@ from logic.reminder import check_or_create_reminder, mark_done
 from navigation import Navigator
 
 def main(page: ft.Page):
+    page.window_maximized = True
+    page.window_resizable = True
     navigator = Navigator(page)
     navigator.go_login()
     page.rtl = True

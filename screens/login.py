@@ -5,8 +5,8 @@ from logic.db import resource_path
 
 def LoginScreen(page, navigator):
     page.title = "Mabat Login"
-    page.window_width = 400
-    page.window_height = 600
+    # page.window_width = 400
+    # page.window_height = 600
 
     password_field = ft.TextField(
         password=True,

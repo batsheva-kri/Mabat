@@ -9,6 +9,9 @@ import pdfkit
 import base64
 import html
 
+from printing import print_pdf_async
+
+
 # --- DAL ---
 
 def add_delivery(name, address, phone1, phone2=None,
@@ -189,7 +192,7 @@ def export_range_summary_pdf(page, sy, sm, ey, em):
 
     pdfkit.from_string(html_content, fname, configuration=config, options=options)
 
-    webbrowser.open_new(f"file:///{fname}")
+    print_pdf_async(fname)
 
     page.snack_bar = ft.SnackBar(ft.Text("דו״ח טווח נוצר ונפתח"))
     page.snack_bar.open = True
@@ -331,7 +334,7 @@ def export_single_pdf_print(d, page):
     pdfkit.from_string(html_content, fname, configuration=config, options=options)
 
     # פתיחה מיידית → מאפשר Ctrl+P ישיר
-    webbrowser.open_new(f"file:///{fname}")
+    print_pdf_async(fname)
 
     page.snack_bar = ft.SnackBar(ft.Text("הקובץ נוצר ונפתח להדפסה"))
     page.snack_bar.open = True
