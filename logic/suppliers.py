@@ -227,30 +227,28 @@ def get_suppliers_catalog_by_supplier_id(supplier_id):
         JOIN products p ON sc.product_id = p.id
         WHERE sc.supplier_id = ?"""
     return run_query(query,(supplier_id,),fetchall=True)
-def add_supplier_catalog_entry(entry):
-    print(entry["product_name"])
-    existing = run_query("SELECT id FROM products WHERE name=?", (entry["product_name"],), fetchone=True)
-    print(existing)
-    if existing:
-        product_id = existing["id"]
-    else:
-        # מוסיפים מוצר חדש
-        run_query("INSERT INTO products (name) VALUES (?)", (entry["product_name"],), fetchone=True, commit=True)
-        product_id = run_query("SELECT id FROM products where name=?",(entry["product_name"],), fetchone=True)
-        print(product_id)
-        # שולפים את המזהה האחרון בצורה בטוחה
-    # result = run_query("SELECT last_insert_rowid() AS id")
-    # if result and len(result) > 0:
-    #     product_id = result[0]["id"]
-    # else:
-    #     raise Exception("לא הצליח לשמור מוצר חדש ולקבל את המזהה שלו")
 
-    # מוסיפים רשומה לקטלוג ספקים
+
+def add_supplier_catalog_entry(entry):
+    # 1. בודקים אם השם קיים בקטלוג הכללי
+    existing = run_query("SELECT id FROM catalog WHERE name=?", (entry["product_name"],), fetchone=True)
+
+    if existing:
+        catalog_id = existing["id"]
+    else:
+        # אם לא קיים - יוצרים רשומה חדשה רק בקטלוג (ללא יצירת מוצר!)
+        run_query("INSERT INTO catalog (name) VALUES (?)", (entry["product_name"],), commit=True)
+        res = run_query("SELECT id FROM catalog WHERE name=?", (entry["product_name"],), fetchone=True)
+        catalog_id = res["id"]
+
+    # 2. מוסיפים/מעדכנים רשומה ב-suppliers_catalog עם ה-catalog_id
     query = """
-    INSERT INTO suppliers_catalog (supplier_id, product_id, price)
+    INSERT INTO suppliers_catalog (supplier_id, catalog_id, price)
     VALUES (?, ?, ?)
+    ON CONFLICT(supplier_id, catalog_id) DO UPDATE SET price = excluded.price
     """
-    run_query(query, (entry["supplier_id"], product_id, entry["price"]), commit=True)
+    # שימי לב: שינינו את העמודה מ-product_id ל-catalog_id ב-INSERT
+    run_query(query, (entry["supplier_id"], catalog_id, entry["price"]), commit=True)
 def update_supplier_catalog_entry(supplier_id, product_id, updates):
     query = """
     INSERT INTO suppliers_catalog (supplier_id, product_id, price)
@@ -328,7 +326,7 @@ def save_arrived_inventory(items, supplier_id, page=None):
         # הוספה לשכבת overlay כדי שיוצג בפועל
         page.overlay.append(snack)
         page.update()
-def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, items: list[dict], notes: str = "", date_: str = None):
+def create_supplier_invitations(customer_invitation_id: int, items: list[dict], notes: str = "", date_: str = None):
     """
     שומר רשומות לטבלת supplier_invitations.
     כל שורה בטבלה היא מוצר בודד בהזמנה לספק.
@@ -342,11 +340,12 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
     header = get_order_by_id(customer_invitation_id)
     print("I am in create_supplier_invitations function")
     try:
-        print("HEADER:", header)
-        if supplier_id == 6:
-            write_supplier2_google_sheet(supplier_id, header, items)
-        else:
-            write(supplier_id, header, items)
+        for item in items:
+            supplier_id = item.get('supplier_id')
+            if supplier_id == 6:
+                write_supplier2_google_sheet(supplier_id, header, item)
+            else:
+                write(supplier_id, header, item)
 
     except Exception as e:
         print("ERROR writing to Google Sheets:", e)
@@ -365,7 +364,7 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
 
     for it in items:
         params = (
-            supplier_id,
+            it.get('supplier_id'),
             date_,
             notes,
             it["product_id"],
@@ -378,12 +377,14 @@ def create_supplier_invitations(supplier_id: int, customer_invitation_id: int, i
         run_query(query, params, commit=True)
 def get_open_orders(supplier_id=None):
     query = """
-    SELECT si.id, s.name as supplier_name,c.name as customer_name, si.date_ as date, ci.total_price AS total,
-           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size
-           FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
-    JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
+    SELECT si.id, s.name as supplier_name, c.name as customer_name, si.date_ as date, 
+           ci.total_price AS ctotal, p.name as product_name, si.quantity, 
+           sc.price, (si.quantity * sc.price) as total, si.size as size
+    FROM supplier_invitations si
     JOIN suppliers s ON si.supplier_id = s.id
     JOIN products p ON si.product_id = p.id
+    LEFT JOIN customer_invitations ci ON ci.id = si.customer_invitation_id
+    LEFT JOIN customers c ON c.id = ci.customer_id 
     LEFT JOIN suppliers_catalog sc 
       ON sc.supplier_id = si.supplier_id AND sc.product_id = si.product_id
     WHERE si.close = 0
@@ -393,15 +394,18 @@ def get_open_orders(supplier_id=None):
         query += " AND si.supplier_id = ?"
         params = (supplier_id,)
     return run_query(query, params, fetchall=True)
+
 def get_closed_orders(supplier_id=None):
     query = """
-    SELECT si.id, s.name as supplier_name, si.date_ as date,c.name as customer_name, ci.total_price AS total,
-           p.name as product_name, si.quantity, sc.price, (si.quantity * sc.price) as total,si.size as size,
+    SELECT si.id, s.name as supplier_name, si.date_ as date, c.name as customer_name, 
+           ci.total_price AS ctotal, p.name as product_name, si.quantity, 
+           sc.price, (si.quantity * sc.price) as total, si.size as size,
            si.supplied, supplying_date
-     FROM customers c JOIN customer_invitations ci ON c.id = ci.customer_id 
-    JOIN supplier_invitations si ON ci.id = si.customer_invitation_id
+    FROM supplier_invitations si
     JOIN suppliers s ON si.supplier_id = s.id
     JOIN products p ON si.product_id = p.id
+    LEFT JOIN customer_invitations ci ON ci.id = si.customer_invitation_id
+    LEFT JOIN customers c ON c.id = ci.customer_id 
     LEFT JOIN suppliers_catalog sc 
       ON sc.supplier_id = si.supplier_id AND sc.product_id = si.product_id
     WHERE si.close = 1

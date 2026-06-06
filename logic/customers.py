@@ -2,7 +2,7 @@ from logic.db import run_action
 from logic.utils import run_query
 
 def get_all_customers():
-    query = """SELECT * FROM customers"""
+    query = """SELECT * FROM customers order by name"""
     return run_query(query, fetchall=True)
 def search_customer_by_name(name):
     query = """
@@ -92,7 +92,6 @@ def add_customer(name: str, phone: str, phone2:str , address: str, email: str = 
     if not allow_duplicate_name and customer_exists_by_name(name):
         # נודיע למעלה שקיים שם, אבל כן נאפשר אם המשתמש ביקש
         return -1  # יחזר לסמן "שם קיים" אבל לא למנוע
-    print("I try to add")
     # הכנסת הלקוח
     params = (name, phone, phone2, address,  email, notes)
     run_action("""
@@ -100,8 +99,6 @@ def add_customer(name: str, phone: str, phone2:str , address: str, email: str = 
         VALUES (?, ?, ?, ?, ?, ?)
     """, params)
     row = run_query("SELECT id FROM customers WHERE phone = ?", (phone,),fetchone=True)
-    print("It's run")
-    print("row",row)
     return row["id"]
 
 def get_customer_by_id(customer_id):

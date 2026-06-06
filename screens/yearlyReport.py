@@ -150,20 +150,9 @@
 #     page.controls.clear()
 #     page.add(layout)
 #     page.update()
-
-
-
-
-
-
-
-
-
-
 import flet as ft
 from logic.suppliers import get_all_suppliers
 from logic.suppliersReport import get_products_report, get_product_sizes_report
-
 
 def YearlyReportScreen(page, user, navigator):
     page.title = "דוח שנתי לספקים"

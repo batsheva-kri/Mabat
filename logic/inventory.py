@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
+from logic.db import run_action
 from logic.suppliers import add_supplier_invitations
 from logic.utils import run_query
 
@@ -8,7 +9,7 @@ def get_all_suppliers():
     query = "SELECT id, name FROM suppliers ORDER BY name"
     return run_query(query, fetchall=True)
 def get_categories():
-    return run_query("SELECT id, name FROM categories ORDER BY name", fetchall=True)
+    return run_query("SELECT id, name, has_sizes FROM categories ORDER BY name", fetchall=True)
 
 # def get_products_by_category_status(category_id =-1, status="inventory"):
 #     print(category_id, status)
@@ -62,7 +63,20 @@ def get_all_products():
 def format_size(d: Decimal) -> str:
     # מפיק מחרוזת נוחה: 0.5, 1, 1.25 וכו'
     return format(d.normalize(), 'f').rstrip('0').rstrip('.') if '.' in format(d.normalize(), 'f') else format(d.normalize(), 'f')
-
+def get_required_stock_products():
+    query = """
+        SELECT 
+            p.id, 
+            p.name, 
+            p.status, 
+            p.category_id, 
+            r.required_count, 
+            r.size
+        FROM products p
+        INNER JOIN required_stock r ON p.id = r.product_id
+        ORDER BY p.name
+    """
+    return run_query(query, fetchall=True)
 def sizes_for_category(category_id):
     sizes = []
     if category_id in (1, 2):
@@ -142,3 +156,34 @@ def process_inventory_input(entries):
                     size=str(size),
                     quantity=missing
                 )
+
+
+def add_required_stock(product_id: int, required_count: int, size: str, allow_update=True):
+    # 1. בדיקה האם כבר קיים רישום למוצר הזה במידה הזו
+    existing = run_query(
+        "SELECT required_count FROM required_stock WHERE product_id = ? AND size = ?",
+        (product_id, size),
+        fetchone=True
+    )
+
+    if existing:
+        if not allow_update:
+            # אם לא מאשרים עדכון, נזרוק שגיאה (בדומה לטלפון בלקוחות)
+            raise ValueError(f"כבר קיים רישום למוצר {product_id} במידה {size}")
+        else:
+            # אם מאשרים עדכון, נעדכן את הכמות הקיימת
+            run_action("""
+                UPDATE required_stock 
+                SET required_count = ? 
+                WHERE product_id = ? AND size = ?
+            """, (required_count, product_id, size))
+            return product_id
+
+    # 2. אם לא קיים - הכנסה של שורה חדשה
+    params = (product_id, required_count, size)
+    run_action("""
+        INSERT INTO required_stock (product_id, required_count, size)
+        VALUES (?, ?, ?)
+    """, params)
+
+    return product_id

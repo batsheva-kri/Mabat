@@ -5,6 +5,8 @@ from logic.orders import get_order_by_id, get_invitation_items_by_invitation_id
 from logic.products import get_product_name_by_id
 from logic.suppliers import get_all_suppliers
 from logic.supply_flow import handle_supplied_item, get_open_invitations
+
+
 def Invitation_supply(navigator, page, current_user):
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=ft.Colors.RED)
     page.snack_bar.open = False
@@ -47,7 +49,9 @@ def Invitation_supply(navigator, page, current_user):
     def select_product(val: str):
         name_var.value = val
         suggestions_list.controls.clear()
+        update_open_invitations_table()
         page.update()
+
     def update_suggestions(query: str):
         suggestions_list.controls.clear()
         if query:
@@ -59,17 +63,33 @@ def Invitation_supply(navigator, page, current_user):
         page.update()
 
     # ---------- שדות ----------
-    name_var = ft.TextField(label="שם מוצר", width=140)
-    size_var = ft.TextField(label="מידה", width=120)
-    cylinder_var = ft.TextField(label="צילנדר", width=120)
-    angle_var = ft.TextField(label="זווית", width=120)
-    color_var = ft.TextField(label="צבע", width=120)
-    multifokal_var = ft.TextField(label="מולטיפוקל", width=120)
+
+    # פונקציה מרכזית שמתעדכנת בכל שינוי בשדות
+    def on_field_change(e):
+        if e.control == name_var:
+            update_suggestions(name_var.value)
+        update_open_invitations_table()
+
+    name_var = ft.TextField(label="שם מוצר", width=140, on_change=on_field_change)
+    size_var = ft.TextField(label="מידה", width=120, on_change=on_field_change)
+    cylinder_var = ft.TextField(label="צילנדר", width=120, on_change=on_field_change)
+    angle_var = ft.TextField(label="זווית", width=120, on_change=on_field_change)
+    color_var = ft.TextField(label="צבע", width=120, on_change=on_field_change)
+    multifokal_var = ft.TextField(label="מולטיפוקל", width=120, on_change=on_field_change)
+
     curvature_options = ["8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
-    curvature_var = ft.Dropdown(label="קימור", width=120,
-                                options=[ft.dropdown.Option(c, c) for c in curvature_options], )
-    quantity_var = ft.TextField(label="כמות", value="1", width=80)
-    name_var.on_change = lambda e: (update_suggestions(name_var.value))
+    curvature_var = ft.Dropdown(
+        label="קימור",
+        width=120,
+        options=[ft.dropdown.Option(c, c) for c in curvature_options],
+        on_change=on_field_change
+    )
+
+    quantity_var = ft.TextField(label="כמות", value="1",
+                                width=80)  # כמות בדרך כלל לא מסננת את הטבלה, אז לא הוספתי לה on_change
+
+    # עדכון ה-Dropdown של הספק שיופיע בתחילת הדף
+    supplier_dropdown.on_change = on_field_change
     # ---------- עזרי המרה ----------
     def format_number(n):
         if n is None or n == "-":
@@ -90,7 +110,6 @@ def Invitation_supply(navigator, page, current_user):
                                 angle=None, color=None, multifokal=None, curvature=None):
         invitations = get_open_invitations()
         filtered = []
-
         for inv in invitations:
             if supplier_id and int(inv["supplier_id"]) != int(supplier_id):
                 continue
@@ -117,45 +136,47 @@ def Invitation_supply(navigator, page, current_user):
 
     # ---------- עדכון טבלה ----------
     def update_open_invitations_table():
-        open_invitations_table.rows.clear()
-        filtered = filter_open_invitations(
-            supplier_dropdown.value,
-            name_var.value,
-            size_var.value,
-            cylinder_var.value,
-            angle_var.value,
-            color_var.value,
-            multifokal_var.value,
-            curvature_var.value
-        )
-
-        for i, inv in enumerate(filtered):
-            open_invitations_table.rows.append(
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(inv.get("id", "-"))),
-                        ft.DataCell(ft.Text(inv.get("customer_name", "-"))),
-                        ft.DataCell(ft.Text(inv.get("product_name", "-"))),
-                        ft.DataCell(ft.Text(inv.get("size", "-"))),
-                        ft.DataCell(ft.Text(str(inv.get("cylinder") or "-"))),
-                        ft.DataCell(ft.Text(format_number(inv.get("angle") or "-"))),
-                        ft.DataCell(ft.Text(inv.get("color", "-"))),
-                        ft.DataCell(ft.Text(inv.get("multifokal", "-"))),
-                        ft.DataCell(ft.Text(inv.get("curvature", "-"))),
-                        ft.DataCell(ft.Text(inv.get("quantity_remaining", "-"))),
-                        ft.DataCell(
-                            ft.ElevatedButton(
-                                "סמן כסופקה",
-                                bgcolor="#52b69a",
-                                color="white",
-                                on_click=lambda e, iid=inv["inv_item_id"]: mark_as_supplied(iid)
-                            )
-                        ),
-                    ],
-                    color="#f28c7d" if i % 2 == 0 else "#ffffff"
-                )
+        if supplier_dropdown.value is not None:
+            open_invitations_table.rows.clear()
+            print(f" supplier {supplier_dropdown.value}")
+            filtered = filter_open_invitations(
+                supplier_dropdown.value,
+                name_var.value,
+                size_var.value,
+                cylinder_var.value,
+                angle_var.value,
+                color_var.value,
+                multifokal_var.value,
+                curvature_var.value
             )
-        page.update()
+
+            for i, inv in enumerate(filtered):
+                open_invitations_table.rows.append(
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(inv.get("id", "-"))),
+                            ft.DataCell(ft.Text(inv.get("customer_name", "-"))),
+                            ft.DataCell(ft.Text(inv.get("product_name", "-"))),
+                            ft.DataCell(ft.Text(inv.get("size", "-"))),
+                            ft.DataCell(ft.Text(str(inv.get("cylinder") or "-"))),
+                            ft.DataCell(ft.Text(format_number(inv.get("angle") or "-"))),
+                            ft.DataCell(ft.Text(inv.get("color", "-"))),
+                            ft.DataCell(ft.Text(inv.get("multifokal", "-"))),
+                            ft.DataCell(ft.Text(inv.get("curvature", "-"))),
+                            ft.DataCell(ft.Text(inv.get("quantity_remaining", "-"))),
+                            ft.DataCell(
+                                ft.ElevatedButton(
+                                    "סמן כסופקה",
+                                    bgcolor="#52b69a",
+                                    color="white",
+                                    on_click=lambda e, iid=inv["inv_item_id"]: mark_as_supplied(iid)
+                                )
+                            ),
+                        ],
+                        color="#f28c7d" if i % 2 == 0 else "#ffffff"
+                    )
+                )
+            page.update()
 
     # ---------- סימון כסופק ----------
     def mark_as_supplied(inv_id):
@@ -170,13 +191,12 @@ def Invitation_supply(navigator, page, current_user):
             quantity_var
         )
 
-        page.snack_bar.content = ft.Text("הפריט סומן כסופקה!")
+        page.snack_bar.content = ft.Text("הפריט סומן כסופק!")
         page.snack_bar.open = True
         update_open_invitations_table()
         exist = get_order_by_id(item["invitation_id"])
         exist["items"] = get_invitation_items_by_invitation_id(item["invitation_id"])
-        navigator.go_new_invitation(user=current_user, c_id=item["customer_id"], existing_invitation= exist,edit=False  )
-
+        navigator.go_new_invitation(user=current_user, c_id=item["customer_id"], existing_invitation=exist, edit=False)
 
     # ---------- הוספת מוצר ידנית ----------
     items = []

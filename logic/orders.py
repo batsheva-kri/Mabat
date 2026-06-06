@@ -12,9 +12,6 @@ def new_invitation(header: dict ,items: list[dict]):
     add_invitation_items(invitation_id, items)
     return invitation_id
 def create_invitation(header: dict):
-    print(header.get("curvature"))
-    print(header.get("curvature") is None)
-    print(type(header.get("curvature")))
     curvature_val = header.get("curvature")
 
     # 💡 הוספת בדיקה למחרוזת "None" (או "none", למקרה הצורך)
@@ -74,6 +71,7 @@ def add_invitation_items(invitation_id: int, items: list[dict]):
         (invitation_id, product_id, quantity, size, price, supplied)
     VALUES (?, ?, ?, ?, ?, ?)
     """
+    print("I am in add_invitation_items")
     for it in items:
         params = (
             invitation_id,
@@ -164,7 +162,6 @@ def update_invitation(invitation_id: int, header: dict):
         )
     run_query(query, params, commit=True)
     return True
-# פונקציה חדשה לעדכון שדות סטטוס בלבד
 def update_invitation_status(invitation_id: int, call=None, delivery_requested=None, delivery_sent=None, collected= None):
     """
     עדכון שדות סטטוס בלבד בהזמנה.
@@ -314,4 +311,31 @@ def cancel_c_invitation(invitation_id):
         (invitation_id,),
         commit=True
     )
+def delete_invitation(invitation_id):
+    try:
+        # 1. מחיקת הזמנות ספקים (השכבה החיצונית ביותר)
+        run_query(
+            "DELETE FROM supplier_invitations WHERE customer_invitation_id = ?",
+            (invitation_id,),
+            commit=False  # לא שומרים עדיין
+        )
+
+        # 2. מחיקת פריטי ההזמנה
+        run_query(
+            "DELETE FROM customer_invitation_items WHERE invitation_id = ?",
+            (invitation_id,),
+            commit=False
+        )
+
+        # 3. מחיקת ההזמנה הראשית (רק בסוף)
+        run_query(
+            "DELETE FROM customer_invitations WHERE id = ?",
+            (invitation_id,),
+            commit=True  # עכשיו מבצעים שמירה סופית לכל הפעולות יחד
+        )
+        return True
+    except Exception as e:
+        print(f"Error deleting invitation: {e}")
+        return False
+
 

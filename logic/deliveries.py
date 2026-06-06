@@ -13,11 +13,27 @@ from printing import print_pdf_async
 
 
 # --- DAL ---
+def _delete_after_delay(file_path, delay=20):
+    """מוחק את הקובץ אחרי השהייה כדי לאפשר למ מדפסת לסיים לקרוא אותו"""
+    import threading
+    import time
+    def task():
+        time.sleep(delay)
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"--- Temporary file deleted: {file_path} ---")
+        except Exception as e:
+            print(f"Could not delete temp file: {e}")
 
+    # הרצה ב-Thread נפרד כדי לא לעצור את התוכנה
+    threading.Thread(target=task, daemon=True).start()
 def add_delivery(name, address, phone1, phone2=None,
                  cash=False, cash_amount=0, home_delivery=False,
                  created_by_user_id=None, notes=None):
-
+    print("ksmcksmcksmcks  ", name, address, phone1, phone2,
+                 cash, cash_amount, home_delivery,
+                 created_by_user_id, notes)
     run_action("""
         INSERT INTO deliveries
         (name, address, phone1, phone2, cash, cash_amount,
@@ -85,11 +101,26 @@ def get_delivery_by_id(delivery_id):
 # logo_path = os.path.join(ASSETS_DIR, "shop_bg.png")
 # arial_path = os.path.join(ASSETS_DIR, "arial.ttf")
 
+import os
+import tempfile
+from pathlib import Path
 
 # --- Paths / Assets ---
-downloads_dir = str(Path.home() / "Downloads")
-os.makedirs(downloads_dir, exist_ok=True)
 
+# 1. יצירת נתיב לתיקייה זמנית של המערכת (מקום נסתר עם הרשאות כתיבה)
+# tempfile.gettempdir() מחזיר נתיב כמו C:\Users\User\AppData\Local\Temp
+temp_base = Path(tempfile.gettempdir()) / "Mabat_Temp_Invoices"
+
+# 2. יצירת התיקייה הזמנית במידה והיא לא קיימת
+os.makedirs(str(temp_base), exist_ok=True)
+
+# 3. הגדרת המשתנה לשימוש בשאר הפונקציות
+output_base_path = str(temp_base)
+
+# הדפסת הנתיב למסוף (Console) כדי שתוכלי להעתיק ולראות שהקובץ שם
+print(f"--- קבצים זמניים נשמרים בנתיב: {output_base_path} ---")
+
+# --- שאר הנתיבים שלך (לוגו ופונטים נשארים כרגיל) ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "assets"))
 
@@ -119,14 +150,12 @@ def export_range_summary_pdf(page, sy, sm, ey, em):
 
     price_home = 25
     price_regular = 20
-
     total_price = home * price_home + not_home * price_regular
 
     rows_html = ""
     for d in items:
         rows_html += f"""
         <tr>
-            
             <td>{_maybe_reshape_hebrew(d['name'])}</td>
             <td>{_maybe_reshape_hebrew(d['address'])}</td>
             <td>{"כן" if d['home_delivery'] else "לא"}</td>
@@ -134,9 +163,10 @@ def export_range_summary_pdf(page, sy, sm, ey, em):
         </tr>
         """
 
+    # שימוש בנתיב הזמני הנסתר
     fname = os.path.join(
-        downloads_dir,
-        f"deliveries_{sy}-{sm:02d}_to_{ey}-{em:02d}.pdf"
+        output_base_path,
+        f"range_report_{sy}_{sm}.pdf"
     )
 
     html_content = f"""
@@ -153,12 +183,11 @@ def export_range_summary_pdf(page, sy, sm, ey, em):
     </head>
     <body>
         <div style="text-align:center;margin-bottom:20px">
-         <img src="data:image/png;base64,{logo_b64}" width="200">
+             <img src="data:image/png;base64,{logo_b64}" width="200">
              <h2>דו"ח משלוחים {sy}/{sm:02d} – {ey}/{em:02d}</h2>
         </div>
         <table>
             <tr>
-                 
                 <th>שם</th>
                 <th>כתובת</th>
                 <th>עד הבית</th>
@@ -166,38 +195,30 @@ def export_range_summary_pdf(page, sy, sm, ey, em):
             </tr>
             {rows_html}
         </table>
-
         <hr>
-
         <p>סה״כ משלוחים: <b>{total}</b></p>
         <p>סה״כ עד הבית: <b>{home}</b></p>
         <p>סה״כ לא עד הבית: <b>{not_home}</b></p>
-
-        <p>
-            תשלום:
-            {not_home} × {price_regular} ₪ +
-            {home} × {price_home} ₪
-        </p>
-
         <h3>סה״כ לתשלום: {total_price} ₪</h3>
     </body>
     </html>
     """
 
     options = {"enable-local-file-access": ""}
+    config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
 
-    config = pdfkit.configuration(
-        wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-    )
-
+    # יצירת הקובץ
     pdfkit.from_string(html_content, fname, configuration=config, options=options)
 
+    # הדפסה
     print_pdf_async(fname)
 
-    page.snack_bar = ft.SnackBar(ft.Text("דו״ח טווח נוצר ונפתח"))
+    # מחיקה אוטומטית מהתיקייה הנסתרת בעוד 20 שניות
+    _delete_after_delay(fname)
+
+    page.snack_bar = ft.SnackBar(ft.Text("דו״ח טווח נשלח להדפסה"))
     page.snack_bar.open = True
     page.update()
-
 
 
 
@@ -226,9 +247,10 @@ font_b64 = _file_to_b64(arial_path)
 
 # --- Single PDF ---
 def export_single_pdf_print(d, page):
+    # שימוש בנתיב הזמני הנסתר
     fname = os.path.join(
-        downloads_dir,
-        f"delivery_{d['id']}.pdf"
+        output_base_path,
+        f"delivery_label_{d['id']}.pdf"
     )
 
     html_content = f"""
@@ -241,67 +263,20 @@ def export_single_pdf_print(d, page):
                 font-family:'ArialHeb';
                 src:url(data:font/truetype;charset=utf-8;base64,{font_b64}) format('truetype');
             }}
-
-            body {{
-                font-family:'ArialHeb';
-                margin:0;
-                padding:0;
-            }}
-
-            .page {{
-                width:210mm;
-                height:297mm;
-                position:relative;
-            }}
-
-            .label {{
-                position:absolute;
-                top:10mm;
-                right:10mm;
-                width:105mm;   /* חצי רוחב */
-                height:148mm;  /* חצי גובה */
-                border:3px solid #40E0D0;
-                padding:10mm;
-                box-sizing:border-box;
-            }}
-
-            .header {{
-                text-align:center;
-                margin-bottom:8px;
-            }}
-
-            .header img {{
-                width:120px;
-            }}
-
-            table {{
-                width:100%;
-                border-collapse:collapse;
-                font-size:13px;
-            }}
-
-            td {{
-                border:1px solid #ddd;
-                padding:5px;
-            }}
-
-            td:first-child {{
-                background:#52b69a;
-                color:white;
-                font-weight:bold;
-                width:35%;
-            }}
+            body {{ font-family:'ArialHeb'; margin:0; padding:0; }}
+            .page {{ width:210mm; height:297mm; position:relative; }}
+            .label {{ position:absolute; top:10mm; right:10mm; width:105mm; height:148mm; border:3px solid #40E0D0; padding:10mm; box-sizing:border-box; }}
+            .header {{ text-align:center; margin-bottom:8px; }}
+            .header img {{ width:120px; }}
+            table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+            td {{ border:1px solid #ddd; padding:5px; }}
+            td:first-child {{ background:#52b69a; color:white; font-weight:bold; width:35%; }}
         </style>
     </head>
-
     <body>
         <div class="page">
             <div class="label">
-                <div class="header">
-                    <img src="data:image/png;base64,{logo_b64}">
-                     
-                </div>
-
+                <div class="header"><img src="data:image/png;base64,{logo_b64}"></div>
                 <table>
                     <tr><td>שם</td><td>{_maybe_reshape_hebrew(d['name'])}</td></tr>
                     <tr><td>כתובת</td><td>{_maybe_reshape_hebrew(d['address'])}</td></tr>
@@ -309,7 +284,7 @@ def export_single_pdf_print(d, page):
                     <tr><td>תשלום</td><td>{"מזומן" if d['cash'] else "אשראי"}</td></tr>
                     <tr><td>סכום</td><td>{d['cash_amount'] if d['cash'] else "-"}</td></tr>
                     <tr><td>עד הבית</td><td>{"כן" if d['home_delivery'] else "לא"}</td></tr>
-                     <tr><td>הערות</td><td>{_maybe_reshape_hebrew(d['notes'])}</td></tr>
+                    <tr><td>הערות</td><td>{_maybe_reshape_hebrew(d['notes'])}</td></tr>
                 </table>
             </div>
         </div>
@@ -319,26 +294,23 @@ def export_single_pdf_print(d, page):
 
     options = {
         "page-size": "A4",
-        "margin-top": "0mm",
-        "margin-bottom": "0mm",
-        "margin-left": "0mm",
-        "margin-right": "0mm",
-        "print-media-type": "",
-        "disable-smart-shrinking": ""
+        "margin-top": "0mm", "margin-bottom": "0mm", "margin-left": "0mm", "margin-right": "0mm",
+        "enable-local-file-access": ""
     }
 
-    config = pdfkit.configuration(
-        wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-    )
+    config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
 
+    # יצירת הקובץ
     pdfkit.from_string(html_content, fname, configuration=config, options=options)
 
-    # פתיחה מיידית → מאפשר Ctrl+P ישיר
+    # הדפסה
     print_pdf_async(fname)
 
-    page.snack_bar = ft.SnackBar(ft.Text("הקובץ נוצר ונפתח להדפסה"))
+    # מחיקה אוטומטית מהתיקייה הנסתרת בעוד 20 שניות
+    _delete_after_delay(fname)
+
+    page.snack_bar = ft.SnackBar(ft.Text("התווית נשלחה להדפסה"))
     page.snack_bar.open = True
     page.update()
-
 
     return fname

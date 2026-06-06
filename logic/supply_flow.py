@@ -15,63 +15,66 @@ def _to_float_safe(x):
             return float(str(x).split()[0])
         except Exception:
             return None
+
+
 def parse_size(size_str):
-        if not size_str:
-            return None, None, None
+    # הגדרת ערכי ברירת מחדל כמחרוזת ריקה
+    sphere, cyl, axis = "", "", ""
 
-        parts = str(size_str).split()
-        if len(parts) == 1:
-            # רק Sphere
-            return _to_float_safe(parts[0]), None, None
+    if not size_str or not isinstance(size_str, str):
+        return sphere, cyl, axis
 
-        if len(parts) == 2:
-            # Sphere + Cylinder
-            return _to_float_safe(parts[0]), _to_float_safe(parts[1]), None
+    # פיצול המחרוזת לפי רווחים (מטפל גם ברווחים כפולים וגם ב-non-breaking space)
+    parts = size_str.strip().split()
+    count = len(parts)
 
-        if len(parts) >= 3:
-            # Sphere + Cylinder + Axis
-            return _to_float_safe(parts[0]), _to_float_safe(parts[1]), _to_float_safe(parts[2])
+    if count >= 1:
+        sphere = parts[0]
+    if count >= 2:
+        cyl = parts[1]
+    if count >= 3:
+        axis = parts[2]
 
+    return sphere, cyl, axis
 def get_open_invitations():
     # שולף את כל פריטי ההזמנות הפתוחות, עם פרטי ההזמנה והלקוח, פעם אחת בלבד לכל פריט
     invitations = run_query("""
         SELECT 
-            inv.id,
-            ci.id as inv_item_id,
-            inv.customer_id,
-            ci.product_id,
-            ci.size,
-            si.supplier_id,
-            ci.quantity - ci.supplied AS quantity_remaining,
-            c.name AS customer_name,
-            p.name AS product_name,
-            inv.color,
-            inv.multifokal,
-            inv.curvature
-        FROM customer_invitation_items ci
-        JOIN customer_invitations inv ON ci.invitation_id = inv.id
-        LEFT JOIN (
-            SELECT customer_invitation_id, MIN(supplier_id) AS supplier_id
-            FROM supplier_invitations
-            GROUP BY customer_invitation_id
-        ) si ON si.customer_invitation_id = inv.id
-        JOIN customers c ON inv.customer_id = c.id
-        JOIN products p ON ci.product_id = p.id
-        WHERE inv.status = 'invented'
-          AND ci.supplied < ci.quantity
+    inv.id,
+    ci.id as inv_item_id,
+    inv.customer_id,
+    ci.product_id,
+    ci.size,
+    si.supplier_id,
+    ci.quantity - ci.supplied AS quantity_remaining,
+    c.name AS customer_name,
+    p.name AS product_name,
+    inv.color,
+    inv.multifokal,
+    inv.curvature
+FROM customer_invitation_items ci
+JOIN customer_invitations inv ON ci.invitation_id = inv.id
+JOIN supplier_invitations si ON si.customer_invitation_id = inv.id
+JOIN customers c ON inv.customer_id = c.id
+JOIN products p ON ci.product_id = p.id
+WHERE inv.status = 'invented'
+  AND ci.supplied < ci.quantity
     """, fetchall=True)
-
+    print("invitations", invitations)
     for inv in invitations:
-        sphere, cyl, axis = parse_size(inv["size"])
+        # פירוק המידה ל-3 שדות
+        sphere, cyl, axis = parse_size(inv.get("size", ""))
+
         inv["size"] = sphere
         inv["cylinder"] = cyl
         inv["angle"] = axis
-        # אם השדות חסרים, מגדירים "-"
-        inv["color"] = inv.get("color") or "-"
-        inv["multifokal"] = inv.get("multifokal") or "-"
-        inv["curvature"] = inv.get("curvature") or "-"
 
+        # השמת ערך ריק אם הנתון ב-DB הוא None או Null
+        inv["color"] = inv.get("color") or ""
+        inv["multifokal"] = inv.get("multifokal") or ""
+        inv["curvature"] = inv.get("curvature") or ""
     return invitations
+
 def handle_supplied_item(page,
                          invitation_id,
                          quantity,
@@ -118,6 +121,8 @@ def handle_supplied_item(page,
         (customer_invitation_item_id,),
         fetchone=True
     )
+    print("quantity",quantity)
+    print("current_item",current_item)
     if not current_item:
         show_dialog("שגיאה", f"לא נמצא פריט {customer_invitation_item_id} בהזמנה {invitation_id}")
         return
@@ -126,7 +131,6 @@ def handle_supplied_item(page,
     quantity_remaining = int(current_item["quantity"]) - int(current_item["supplied"])
     total_supplied_now = min(int(quantity), quantity_remaining)
     leftover = int(quantity) - total_supplied_now
-
     # --- עדכון supplied ---
     new_supplied = int(current_item["supplied"]) + total_supplied_now
     run_query(
@@ -134,7 +138,11 @@ def handle_supplied_item(page,
         (new_supplied, item_id),
         commit=True
     )
-
+    print("kjvhf", run_query(
+        "SELECT * FROM customer_invitation_items WHERE id = ? ",
+        (item_id,),
+        fetchall=True
+    ))
     # --- אם נשאר עודף, עדכון תיבת הכמות והצגת אזהרה ---
     if leftover > 0 and quantity_var:
         quantity_var.value = str(leftover)

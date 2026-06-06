@@ -6,7 +6,7 @@ from logic.db import resource_path
 
 def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing_invitation,
                          created_by_user_name, delivery_data=None, discount=0.0, output_file="invoice.pdf"):
-    logo_path = resource_path("assets/shop_bg.png")
+    logo_path = resource_path("assets/invoice.png")
 
     subtotal = sum(i.get('line_total', 0) for i in existing_invitation["items"])
     total_price = max(subtotal - total_discount - discount, 0)
@@ -42,7 +42,7 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
             <tr>
                 <td>{i+1}</td>
                 <td>{item['product_name']}</td>
-                <td>{item['size']}</td>
+                <td>{item['size']} {item['cyl']} {item['ax']}</td>
                 <td>{ordered}</td>
                 <td>{item['unit_price']:.2f} ₪</td>
                 <td>{item['line_total']:.2f} ₪</td>
@@ -223,7 +223,7 @@ def generate_invoice_pdf(customer_name, customer_phone, total_discount, existing
         <tr>
             <td>{i + 1}</td>
             <td>{item['product_name']}</td>
-            <td>{item['size']}</td>
+            <td>{item['ax']} {item['cyl']} {item['size']}</td>
             <td>{ordered}</td>
             <td>{item['unit_price']:.2f} ₪</td>
             <td>{item['line_total']:.2f} ₪</td>

@@ -32,8 +32,19 @@ def CustomersScreen(page, navigator, user):
     # --- שליפת לקוחות ---
     def load_customers():
         rows = get_all_customers()
+
+        # לוגיקת סינון
+        name_query = search_name.value.lower() if search_name.value else ""
+        phone_query = search_phone.value if search_phone.value else ""
+
+        filtered_rows = [
+            c for c in rows
+            if (name_query in c["name"].lower()) and
+               (phone_query in (c["phone"] or "") or phone_query in (c["phone2"] or ""))
+        ]
+
         data_table.rows.clear()
-        for i, c in enumerate(rows):
+        for i, c in enumerate(filtered_rows):  # משתמשים ברשימה המסוננת
             actions = ft.Row([
                 ft.IconButton(
                     icon=ft.Icons.EDIT,
@@ -45,7 +56,6 @@ def CustomersScreen(page, navigator, user):
                     tooltip="מחק",
                     on_click=lambda e, cid=c["id"]: handle_delete_customer(cid)
                 )
-
             ])
 
             data_table.rows.append(
@@ -62,9 +72,7 @@ def CustomersScreen(page, navigator, user):
                     color="#f28c7d" if i % 2 == 0 else "#ffffff"
                 )
             )
-
         page.update()
-
     # --- חלון עריכת לקוח ---
     def open_customer_dialog(customer_id):
         customer = next(c for c in get_all_customers() if c["id"] == customer_id)
@@ -126,10 +134,22 @@ def CustomersScreen(page, navigator, user):
             )
         )
         page.update()
-
+        # שדות חיפוש
+    search_name = ft.TextField(
+        label="חיפוש לפי שם",
+        width=200,
+        on_change=lambda e: load_customers()
+    )
+    search_phone = ft.TextField(
+        label="חיפוש לפי טלפון",
+        width=200,
+        on_change=lambda e: load_customers()
+    )
     # --- כפתורי פעולה ---
     controls = ft.Column([
         ft.Row([
+            search_name,
+            search_phone,
             ft.ElevatedButton(
                 "חזרה לבית🏠",
                 on_click=lambda e: navigator.go_home(user),

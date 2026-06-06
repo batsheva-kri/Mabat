@@ -43,6 +43,14 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         rows = run_query("SELECT name FROM categories")
         return [ft.dropdown.Option(r["name"] or "-") for r in rows]
 
+    def get_available_catalog_names():
+        # שולף שמות מהקטלוג שעדיין לא מופיעים בטבלת המוצרים
+        query = """
+            SELECT id, name FROM catalog 
+            WHERE id NOT IN (SELECT catalog_id FROM products WHERE catalog_id IS NOT NULL)
+        """
+        rows = run_query(query)
+        return [ft.dropdown.Option(key=str(r["id"]), text=r["name"]) for r in rows]
     def get_suppliers():
         rows = run_query("SELECT name FROM suppliers")
         return [ft.dropdown.Option(r["name"] or "-") for r in rows]
@@ -141,12 +149,22 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 if sup_query:
                     sup_val = sup_query[0]["name"]
             free_pair_val = bool(product.get("free_pair", 0))
+
+            # במצב עריכה - השם נשאר טקסט קבוע לקריאה בלבד
+            name_input = ft.TextField(label="שם מוצר", value=name_val, read_only=True, width=300)
         else:
             name_val = company_val = image_val = cat_val = status_val = info_val = sup_val = None
             price_val = p3_val = p12_val = 0
             free_pair_val = False
 
-        name_field = ft.TextField(label="שם מוצר", value=name_val, width=300)
+            # במצב הוספה - בחירה מתוך קטלוג השמות שהגיעו מהספקים
+            name_input = ft.Dropdown(
+                label="בחר מוצר מהקטלוג",
+                options=get_available_catalog_names(),
+                width=300,
+                hint_text="המוצר חייב להופיע קודם במסך ספקים"
+            )
+
         company_field = ft.TextField(label="חברה", value=company_val, width=300)
         selected_image = ft.Text(value=image_val or "-", size=12)
 
@@ -179,7 +197,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             value=free_pair_val
         )
 
-        # --- שינוי תוויות לפי קטגוריה ---
         def update_price_labels(e=None):
             cat_name = category_dropdown.value or ""
             if "יומיות" in cat_name:
@@ -191,12 +208,13 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             page.update()
 
         category_dropdown.on_change = update_price_labels
-        update_price_labels()  # הגדרת תוויות ראשונית
+        update_price_labels()
 
         def close_dialog():
             page.overlay.clear()
             page.update()
 
+        # --- פונקציית save_product המעודכנת ---
         def save_product(ev, pid=pid):
             try:
                 def show_message(text, success=True):
@@ -234,26 +252,53 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 status_value = "inventory" if status_dropdown.value == "מלאי" else "invitation"
                 image_path = selected_image.value if selected_image.value != "-" else None
                 free_pair_value = 1 if free_pair_checkbox.value else 0
-
-                if pid:
+                print("pid",pid)
+                if pid is not None:
+                    # בעדכון מוצר קיים - לא משנים את השם או ה-catalog_id
                     run_action("""
                         UPDATE products
-                        SET name=?, company=?, image_path=?, category_id=?, status=?, information=?,
+                        SET company=?, image_path=?, category_id=?, status=?, information=?,
                             preferred_supplier_id=?, price=?, price_3=?, price_12=?, free_pair=?
                         WHERE id=?
                     """, (
-                        name_field.value, company_field.value, image_path, cat_id, status_value,
+                        company_field.value, image_path, cat_id, status_value,
                         info_field.value, sup_id, price_value, price_3_value, price_12_value,
                         free_pair_value, pid
                     ))
                     show_message("✅ המוצר עודכן בהצלחה!")
                 else:
+                    print("is not None")
+                    # בהוספה חדשה - שולפים את השם מהקטלוג ומשכפלים אותו ל-products
+                    selected_catalog_id = name_input.value
+                    print("name",name_input)
+                    if not selected_catalog_id:
+                        show_message("❌ יש לבחור שם מוצר מהרשימה", success=False)
+                        return
+                    print("selected_catalog_id",selected_catalog_id)
+                    # --- החלפה של הקטע הבעייתי בתוך save_product ---
+
+                    # 1. המרה מפורשת למספר שלם כדי למנוע בעיות ב-DB
+                    catalog_id_int = int(selected_catalog_id)
+                    print(f"DEBUG: Trying to fetch name for catalog_id: {catalog_id_int}")
+
+                    # 2. שימוש בשאילתה רגילה ללא fetchone=True (אם הפונקציה שלך מחזירה רשימה כברירת מחדל)
+                    catalog_results = run_query("SELECT name FROM catalog WHERE id=?", (catalog_id_int,))
+
+                    if not catalog_results:
+                        print("DEBUG: No results found in catalog for this ID")
+                        show_message("❌ שגיאה: השם לא נמצא בטבלת הקטלוג", success=False)
+                        return
+
+                    # 3. שליפת השם מתוך הרשימה
+                    chosen_name = catalog_results[0]["name"]
+                    print(f"DEBUG: Success! chosen_name is: {chosen_name}")
+                    print("I try to add")
                     run_action("""
-                        INSERT INTO products (name, company, image_path, category_id, status, information,
+                        INSERT INTO products (name, catalog_id, company, image_path, category_id, status, information,
                                               preferred_supplier_id, price, price_3, price_12, free_pair)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
-                        name_field.value, company_field.value, image_path, cat_id, status_value,
+                        chosen_name, selected_catalog_id, company_field.value, image_path, cat_id, status_value,
                         info_field.value, sup_id, price_value, price_3_value, price_12_value,
                         free_pair_value
                     ))
@@ -273,7 +318,7 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
         dlg_content = ft.Container(
             content=ft.Column(
                 [
-                    name_field, company_field,
+                    name_input, company_field,
                     ft.Row([pick_button, selected_image], alignment=ft.MainAxisAlignment.CENTER),
                     category_dropdown, status_dropdown,
                     price_field, price_3_field, price_12_field,
@@ -282,8 +327,8 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
                 ],
                 spacing=10,
                 scroll=ft.ScrollMode.AUTO,
-                alignment=ft.MainAxisAlignment.CENTER,  # <-- מרכז את השדות אנכית
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # <-- מרכז אופקית
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 expand=True
             ),
             expand=True
@@ -305,7 +350,6 @@ def CatalogScreen(page, navigator, user, mode="inventory"):
             )
         )
         page.update()
-
     def add_product_dialog(e):
         product_dialog()
 

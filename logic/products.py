@@ -31,13 +31,16 @@ def get_catalog_prices(product_id, amount):
     price_6 = prices.get("price_6") or price * 12     # 6 זוגות = 12 יחידות
     price_12 = prices.get("price_12") or price * 24   # 12 זוגות = 24 יחידות
     free_pair = prices.get("free_pair") or False
-    if free_pair and amount == 13:
-        amount = 12
+    print('free_pair: ',free_pair)
+
+    if free_pair and amount == 26:
+        amount = 24
     if "יומיות" in name:
         total = calculate_day_total_price(amount, price, price_3, price_12)
     else:
         # פונקציה לחישוב מחיר לפי חבילות
         total = calculate_month_total_price(amount, price, price_3, price_6, price_12)
+    print("amount", amount)
     print("prices",prices)
     print("total", total)
     return {
@@ -53,6 +56,7 @@ def calculate_month_total_price(amount, price, price_3, price_6, price_12):
             total += n_packs * pack_price
             remaining -= n_packs * pack_size
     return total
+
 def calculate_day_total_price(amount, price, price_3, price_12):
     total = 0
     remaining = amount
@@ -90,13 +94,14 @@ def get_order_total(items):
         price_12 = prices[0].get("price_12") or price * 24
         name = prices[0].get("category_name")
         free_pair = prices[0].get("free_pair") or False
-        print("price", price)
-        print("price_3", price)
-        print("price_6", price)
-        print("price_12", price)
         print("total_amount", total_amount)
-        if free_pair and total_amount == 13:
-            total_amount = 12
+        if free_pair :
+            if total_amount == 26:
+                total_amount = 24
+            elif total_amount == 13:
+                total_amount = 12
+            elif total_amount == 39:
+                total_amount = 36
         if "יומיות" in name:
             total +=calculate_day_total_price(total_amount,price, price_3, price_12)
         else:

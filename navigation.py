@@ -10,6 +10,7 @@ from screens.mainInventory import MainInvitationScreen
 from screens.inventory import InventoryScreen
 from screens.new_customer_page import NewCustomerPage
 from screens.new_invitation_page import NewInvitationPage
+from screens.requiredStockScreen import RequiredStockScreen
 from screens.show_customers import CustomersScreen
 from screens.supplier_catalog import SupplierCatalogScreen
 from screens.supplier_orders import OrdersScreen
@@ -83,4 +84,6 @@ class Navigator:
         YearlyReportScreen(self.page, user, self)
     def go_customers_screen(self, user):
         CustomersScreen(self.page, self, user)
+    def go_required_stock(self,user):
+        RequiredStockScreen(self.page,user,self)
 

@@ -20,13 +20,6 @@ def OrdersScreen(page, navigator, user):
         closed_orders[:] = get_closed_orders()
         refresh_view()
 
-    # # --- פעולה לסגירה / פתיחה מחדש ---
-    # def toggle_order(order_id, is_open):
-    #     if is_open:
-    #         close_order(order_id)
-    #     else:
-    #         reopen_order(order_id)
-    #     update_tables()
 
     # --- פונקציה ליצירת טבלה ---
     def build_table(orders, is_open=True):
@@ -37,41 +30,54 @@ def OrdersScreen(page, navigator, user):
         if not filtered:
             return ft.Text("אין הזמנות", color="gray")
 
-        rows = []
-        for i, order in enumerate(filtered):
-            # קביעת צבע רקע לפי סוג הזמנה
-            row_color = None if is_open else "#d0f0c0"  # ירוק בהיר להזמנות סגורות
+        # פונקציית עזר להצגת ערך או "-" אם הוא ריק/None
+        def display_val(val):
+            return str(val) if val is not None and str(val).strip() != "" else "-"
 
-            row = ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(str(order["id"]))),
-                    ft.DataCell(ft.Text(order["product_name"])),
-                    ft.DataCell(ft.Text(order["size"])),
-                    ft.DataCell(ft.Text(order["quantity"])),
-                    ft.DataCell(ft.Text(order["supplier_name"])),
-                    ft.DataCell(ft.Text(order["date"])),
-                    ft.DataCell(ft.Text(str(order["total"]))),
-                    ft.DataCell(ft.Text(order["customer_name"])),
-                ],
-                color=row_color
-            )
+        rows = []
+        for order in filtered:
+            # קביעת צבע רקע לפי סוג הזמנה
+            row_color = None if is_open else "#d0f0c0"
+
+            # בניית רשימת התאים הבסיסית
+            cells = [
+                ft.DataCell(ft.Text(display_val(order["id"]))),
+                ft.DataCell(ft.Text(display_val(order["product_name"]))),
+                ft.DataCell(ft.Text(display_val(order["size"]))),
+                ft.DataCell(ft.Text(display_val(order["quantity"]))),
+                ft.DataCell(ft.Text(display_val(order["supplier_name"]))),
+                ft.DataCell(ft.Text(display_val(order["date"]))),
+                ft.DataCell(ft.Text(display_val(order["total"]))),
+                ft.DataCell(ft.Text(display_val(order["customer_name"]))),
+            ]
+
+            # הוספת עמודת תאריך הגעה רק אם ההזמנה סגורה
+            if not is_open:
+                cells.append(ft.DataCell(ft.Text(display_val(order.get("supplying_date")))))
+
+            row = ft.DataRow(cells=cells, color=row_color)
             rows.append(row)
 
-        return ft.DataTable(
-            columns=[
-                ft.DataColumn(ft.Text("מספר הזמנה")),
-                ft.DataColumn(ft.Text("מוצר")),
-                ft.DataColumn(ft.Text("מידה")),
-                ft.DataColumn(ft.Text("כמות")),
-                ft.DataColumn(ft.Text("ספק")),
-                ft.DataColumn(ft.Text("תאריך")),
-                ft.DataColumn(ft.Text("סכום")),
-                ft.DataColumn(ft.Text("שם הלקוח")),
-            ],
-            rows=rows
-        )
+        # בניית רשימת הכותרות
+        columns = [
+            ft.DataColumn(ft.Text("מספר הזמנה")),
+            ft.DataColumn(ft.Text("מוצר")),
+            ft.DataColumn(ft.Text("מידה")),
+            ft.DataColumn(ft.Text("כמות")),
+            ft.DataColumn(ft.Text("ספק")),
+            ft.DataColumn(ft.Text("תאריך")),
+            ft.DataColumn(ft.Text("סכום")),
+            ft.DataColumn(ft.Text("שם הלקוח")),
+        ]
 
-    # --- פריסת המסך ---
+        # הוספת כותרת תאריך הגעה רק אם ההזמנה סגורה
+        if not is_open:
+            columns.append(ft.DataColumn(ft.Text("תאריך הגעה")))
+
+        return ft.DataTable(
+            columns=columns,
+            rows=rows
+        )   # --- פריסת המסך ---
     def refresh_view():
         page.controls.clear()
 
@@ -97,19 +103,18 @@ def OrdersScreen(page, navigator, user):
         )
 
         controls = [ft.Row([supplier_dropdown, status_dropdown], spacing=20)]
-
+        controls.append(ft.ElevatedButton("⬅ חזרה", bgcolor="#f28c7d",
+                                          color=ft.Colors.WHITE, on_click=lambda e: navigator.go_home(user)))
         if selected_status in ("כולן", "הזמנות שסופקו"):
             controls.append(ft.Text("הזמנות שסופקו", size=20, weight=ft.FontWeight.BOLD))
-            controls.append(build_table(open_orders, is_open=False))
+            controls.append(build_table(closed_orders, is_open=False))
             controls.append(ft.Divider())
 
         if selected_status in ("כולן", "הזמנות שלא סופקו"):
             controls.append(ft.Text("הזמנות שלא סופקו", size=20, weight=ft.FontWeight.BOLD))
-            controls.append(build_table(closed_orders, is_open=True))
+            controls.append(build_table(open_orders, is_open=True))
             controls.append(ft.Divider())
 
-        controls.append(ft.ElevatedButton("⬅ חזרה",bgcolor="#f28c7d",
-            color=ft.Colors.WHITE, on_click=lambda e: navigator.go_home(user)))
 
         page.add(ft.ListView(controls=controls, spacing=20, padding=20, auto_scroll=False))
         page.update()
